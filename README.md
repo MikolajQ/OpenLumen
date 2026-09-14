@@ -6,6 +6,16 @@
 [![Min SDK](https://img.shields.io/badge/minSdk-26-f9e2af?style=flat-square)](app/build.gradle.kts)
 [![No INTERNET](https://img.shields.io/badge/INTERNET-not%20requested-94e2d5?style=flat-square)](#privacy)
 
+<p align="center">
+  <a href="https://ko-fi.com/X8K126YVER">
+    <img height="42" src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" alt="Buy me a coffee on Ko-fi" />
+  </a>
+</p>
+
+<p align="center">
+  <sub><em>If OpenLumen makes your display easier to use, a coffee helps me keep its device paths tested and maintained.</em></sub>
+</p>
+
 > **It changes the display, not a layer on top of it.** Three of OpenLumen's
 > four drivers work below the app layer: two write the colour transform the
 > compositor already applies, and one drives the panel through the kernel. The
