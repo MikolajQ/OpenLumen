@@ -448,7 +448,8 @@ class PreferencesStore(
             1f
         },
         dayKelvin = s.dayKelvin.coerceIn(ScheduleDto.DAY_KELVIN_MIN, ScheduleDto.DAY_KELVIN_MAX),
-        dayDim = s.dayDim.finiteIn(0f, ScheduleDto.DAY_DIM_MAX, default = 0f)
+        dayDim = s.dayDim.finiteIn(0f, ScheduleDto.DAY_DIM_MAX, default = 0f),
+        locationFixAtMs = s.locationFixAtMs.coerceAtLeast(0L)
     ))
 
     /**

@@ -129,7 +129,24 @@ data class ScheduleDto(
      */
     val dayFilter: Boolean = false,
     val dayKelvin: Int = DEFAULT_DAY_KELVIN,
-    val dayDim: Float = 0f
+    val dayDim: Float = 0f,
+
+    /**
+     * Refresh [latitude]/[longitude] from coarse device location when the app
+     * is opened. Picking a city or typing coordinates turns it off, so a
+     * manual choice is never overwritten.
+     */
+    val autoLocation: Boolean = false,
+
+    /** When the automatic location was last confirmed; 0 for never. */
+    val locationFixAtMs: Long = 0L,
+
+    /**
+     * The device timezone when the location was saved. A later timezone
+     * change is the one cheap signal that the user travelled; null for a
+     * location saved before this was recorded.
+     */
+    val locationZoneId: String? = null
 ) {
     companion object {
         const val DEFAULT_DAY_KELVIN = 4000

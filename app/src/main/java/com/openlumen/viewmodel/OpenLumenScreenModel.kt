@@ -82,12 +82,19 @@ interface OpenLumenScreenModel {
         endIntensity: Float
     ): Job = Job()
     /**
-     * Save a location and switch to the solar schedule in one write, for the
-     * Solar row picked before any location existed. Two separate writes could
-     * reach the store in either order, and the mode write is refused while
-     * the location is missing.
+     * Save a location from the dialog in one write: the coordinates, whether
+     * they follow the device from now on, and, for the Solar row picked
+     * before any location existed, the solar mode. Separate writes could reach
+     * the store in either order, and the mode write is refused while the
+     * location is missing.
      */
-    fun setLocationAndSelectSolar(lat: Double, lng: Double, solarTimezone: String?): Job = Job()
+    fun saveLocation(
+        lat: Double,
+        lng: Double,
+        solarTimezone: String?,
+        autoLocation: Boolean,
+        selectSolar: Boolean
+    ): Job = Job()
     fun setDayFilter(enabled: Boolean, kelvin: Int, dim: Float): Job = Job()
     fun reconcileExactAlarmPermission(): Job
     fun setLightSensor(enabled: Boolean, threshold: Float): Job
