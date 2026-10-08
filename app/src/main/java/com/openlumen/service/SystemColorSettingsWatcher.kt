@@ -35,6 +35,8 @@ internal enum class SystemColorConflict {
 internal data class SystemColorState(
     val nightLightActivated: Int? = null,
     val nightLightAutoMode: Int? = null,
+    /** Milliseconds after midnight; only meaningful for auto mode 1 (custom). */
+    val nightLightCustomStartMs: Long? = null,
     val extraDimActivated: Int? = null,
     val inversionEnabled: Int? = null
 )
@@ -73,6 +75,9 @@ internal fun readSystemColorState(resolver: ContentResolver): SystemColorState {
     return SystemColorState(
         nightLightActivated = readInt(SystemColorSettingsWatcher.KEY_NIGHT_ACTIVATED),
         nightLightAutoMode = readInt(SystemColorSettingsWatcher.KEY_NIGHT_AUTO_MODE),
+        nightLightCustomStartMs = runCatching {
+            Settings.Secure.getLong(resolver, SystemColorSettingsWatcher.KEY_NIGHT_CUSTOM_START)
+        }.getOrNull(),
         extraDimActivated = readInt(SystemColorSettingsWatcher.KEY_EXTRA_DIM_ACTIVATED),
         inversionEnabled = readInt(SystemColorSettingsWatcher.KEY_INVERSION_ENABLED)
     )
@@ -129,6 +134,11 @@ internal class SystemColorSettingsWatcher(
     companion object {
         const val KEY_NIGHT_ACTIVATED = "night_display_activated"
         const val KEY_NIGHT_AUTO_MODE = "night_display_auto_mode"
+        const val KEY_NIGHT_CUSTOM_START = "night_display_custom_start_time"
+
+        /** `night_display_auto_mode` values. */
+        const val NIGHT_AUTO_MODE_CUSTOM = 1
+        const val NIGHT_AUTO_MODE_TWILIGHT = 2
         const val KEY_EXTRA_DIM_ACTIVATED = "reduce_bright_colors_activated"
         const val KEY_INVERSION_ENABLED = "accessibility_display_inversion_enabled"
 

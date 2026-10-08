@@ -255,6 +255,10 @@
     <string name="system_conflict_extra_dim_on">さらに輝度を下げる がオンです</string>
     <string name="system_conflict_inversion_on">色反転がオンです</string>
     <string name="system_conflict_open_settings">設定を開く</string>
+    <string name="system_conflict_scheduled_title">システムの夜間モードにスケジュールがあります</string>
+    <string name="system_conflict_scheduled_body">夜間モードは現在オフですが、独自のスケジュールでオンになり、その後は変更のたびにフィルタを置き換えます。フィルタを安定させるには夜間モードのスケジュールを「なし」にしてください。</string>
+    <string name="system_conflict_night_light_scheduled_at">夜間モードは %1$s に自動でオンになります</string>
+    <string name="system_conflict_night_light_scheduled_sunset">夜間モードは日の入りに自動でオンになります</string>
     <string name="notif_title_filtering">OpenLumen フィルタ適用中</string>
     <string name="notif_title_standby">OpenLumen 待機中</string>
     <string name="notif_status_filtering">フィルタ適用中</string>

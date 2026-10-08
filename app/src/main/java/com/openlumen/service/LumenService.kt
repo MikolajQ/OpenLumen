@@ -654,7 +654,9 @@ class LumenService : LifecycleService() {
             DiagnosticsLog.Category.ENGINE,
             "system colour settings changed; conflicts=${conflicts.joinToString().ifEmpty { "none" }}"
         )
-        val fresh = conflicts - reportedSystemConflicts
+        // A Night Light schedule has not written anything yet; the Home card
+        // names it, and the notification is kept for an actual overwrite.
+        val fresh = conflicts - reportedSystemConflicts - SystemColorConflict.NIGHT_LIGHT_SCHEDULED
         reportedSystemConflicts = conflicts
         if (fresh.isNotEmpty()) postSystemConflictNotification()
         systemColorReassertJob?.cancel()

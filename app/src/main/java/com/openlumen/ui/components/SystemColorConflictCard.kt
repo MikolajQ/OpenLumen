@@ -32,6 +32,8 @@ import com.openlumen.prefs.EngineKindDto
 import com.openlumen.external.ExternalIntentLauncher
 import com.openlumen.external.ExternalIntentResult
 import com.openlumen.service.SystemColorConflict
+import com.openlumen.service.SystemColorSettingsWatcher
+import com.openlumen.service.SystemColorState
 import com.openlumen.service.readSystemColorState
 import com.openlumen.service.settingsAction
 import com.openlumen.service.systemColorConflicts
@@ -54,18 +56,22 @@ internal fun SystemColorConflictCard(
     if (engine != EngineKind.SURFACE_FLINGER) return
     val ctx = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val read = { systemColorConflicts(engine, readSystemColorState(ctx.contentResolver)) }
-    var conflicts by remember(engine) { mutableStateOf(read()) }
+    var state by remember(engine) { mutableStateOf(readSystemColorState(ctx.contentResolver)) }
+    val conflicts = systemColorConflicts(engine, state)
     DisposableEffect(lifecycleOwner, engine) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME) {
-                conflicts = read()
+                state = readSystemColorState(ctx.contentResolver)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     if (conflicts.isEmpty()) return
+    // Night Light off now but on a schedule is a warning about later, not
+    // something happening on screen; saying "overriding" for it read as
+    // wrong to anyone looking at Night Light switched off.
+    val onlyScheduled = conflicts == setOf(SystemColorConflict.NIGHT_LIGHT_SCHEDULED)
     var settingsError by rememberSaveable { mutableStateOf(false) }
 
     Card(
@@ -78,12 +84,18 @@ internal fun SystemColorConflictCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                stringResource(R.string.system_conflict_title),
+                stringResource(
+                    if (onlyScheduled) R.string.system_conflict_scheduled_title
+                    else R.string.system_conflict_title
+                ),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
             Text(
-                stringResource(R.string.system_conflict_body),
+                stringResource(
+                    if (onlyScheduled) R.string.system_conflict_scheduled_body
+                    else R.string.system_conflict_body
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
@@ -94,7 +106,7 @@ internal fun SystemColorConflictCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        stringResource(conflict.labelRes()),
+                        conflict.label(state),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                         modifier = Modifier.weight(1f)
@@ -120,12 +132,33 @@ internal fun SystemColorConflictCard(
     }
 }
 
-private fun SystemColorConflict.labelRes(): Int = when (this) {
-    SystemColorConflict.NIGHT_LIGHT_ON -> R.string.system_conflict_night_light_on
-    SystemColorConflict.NIGHT_LIGHT_SCHEDULED -> R.string.system_conflict_night_light_scheduled
-    SystemColorConflict.EXTRA_DIM_ON -> R.string.system_conflict_extra_dim_on
-    SystemColorConflict.COLOR_INVERSION_ON -> R.string.system_conflict_inversion_on
+@Composable
+private fun SystemColorConflict.label(state: SystemColorState): String = when (this) {
+    SystemColorConflict.NIGHT_LIGHT_ON -> stringResource(R.string.system_conflict_night_light_on)
+    SystemColorConflict.NIGHT_LIGHT_SCHEDULED -> when (state.nightLightAutoMode) {
+        SystemColorSettingsWatcher.NIGHT_AUTO_MODE_TWILIGHT ->
+            stringResource(R.string.system_conflict_night_light_scheduled_sunset)
+        SystemColorSettingsWatcher.NIGHT_AUTO_MODE_CUSTOM -> {
+            val startMs = state.nightLightCustomStartMs ?: DEFAULT_NIGHT_LIGHT_START_MS
+            val time = java.time.LocalTime.ofSecondOfDay(
+                (startMs / 1000).coerceIn(0L, 86_399L)
+            )
+            val formatted = android.text.format.DateFormat.getTimeFormat(LocalContext.current)
+                .format(java.util.Date.from(time.atDate(java.time.LocalDate.now())
+                    .atZone(java.time.ZoneId.systemDefault()).toInstant()))
+            stringResource(R.string.system_conflict_night_light_scheduled_at, formatted)
+        }
+        else -> stringResource(R.string.system_conflict_night_light_scheduled)
+    }
+    SystemColorConflict.EXTRA_DIM_ON -> stringResource(R.string.system_conflict_extra_dim_on)
+    SystemColorConflict.COLOR_INVERSION_ON -> stringResource(R.string.system_conflict_inversion_on)
 }
+
+/**
+ * AOSP's `config_defaultNightDisplayCustomStartTime` (22:00), which the row
+ * falls back to when the user never moved the start.
+ */
+private const val DEFAULT_NIGHT_LIGHT_START_MS = 22L * 60 * 60 * 1000
 
 /**
  * The driver the service will be running, as far as the UI can tell: a pin it
