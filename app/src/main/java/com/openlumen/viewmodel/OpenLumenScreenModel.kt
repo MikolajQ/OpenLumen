@@ -88,6 +88,7 @@ interface OpenLumenScreenModel {
      * the location is missing.
      */
     fun setLocationAndSelectSolar(lat: Double, lng: Double, solarTimezone: String?): Job = Job()
+    fun setDayFilter(enabled: Boolean, kelvin: Int, dim: Float): Job = Job()
     fun reconcileExactAlarmPermission(): Job
     fun setLightSensor(enabled: Boolean, threshold: Float): Job
     fun setTransitionDuration(durationMs: Long): Job
