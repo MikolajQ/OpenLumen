@@ -91,8 +91,13 @@ android {
         applicationId = "com.openlumen"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "0.8.0"
+        // Fork releases (MikolajQ/OpenLumen, branch miq) are numbered from
+        // the command line so upstream's own numbers stay untouched here:
+        // -Popenlumen.forkBuild=N gives versionCode upstream*1000+N and a
+        // "-miqN" name. Without it the build is numbered exactly as upstream.
+        val forkBuild = providers.gradleProperty("openlumen.forkBuild").orNull?.toInt()
+        versionCode = if (forkBuild != null) 17 * 1000 + forkBuild else 17
+        versionName = "0.8.0" + (forkBuild?.let { "-miq$it" } ?: "")
         resourceConfigurations += setOf("en", "de", "es", "fr", "ja", "pt")
     }
 
