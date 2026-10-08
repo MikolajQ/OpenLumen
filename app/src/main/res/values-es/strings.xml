@@ -255,6 +255,10 @@
     <string name="system_conflict_extra_dim_on">Atenuación extra está activada</string>
     <string name="system_conflict_inversion_on">Inversión de colores está activada</string>
     <string name="system_conflict_open_settings">Abrir ajustes</string>
+    <string name="system_conflict_scheduled_title">Luz nocturna del sistema está programada</string>
+    <string name="system_conflict_scheduled_body">Luz nocturna está desactivada ahora, pero su propia programación la activará, y desde entonces reemplazará el filtro en cada cambio. Pon la programación de Luz nocturna en Ninguna para un filtro estable.</string>
+    <string name="system_conflict_night_light_scheduled_at">Luz nocturna se activa a las %1$s</string>
+    <string name="system_conflict_night_light_scheduled_sunset">Luz nocturna se activa al atardecer</string>
     <string name="notif_title_filtering">OpenLumen filtrando</string>
     <string name="notif_title_standby">OpenLumen en espera</string>
     <string name="notif_status_filtering">Filtro activo</string>

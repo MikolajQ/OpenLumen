@@ -292,6 +292,10 @@
     <string name="system_conflict_extra_dim_on">Extra dim is on</string>
     <string name="system_conflict_inversion_on">Color inversion is on</string>
     <string name="system_conflict_open_settings">Open settings</string>
+    <string name="system_conflict_scheduled_title">System Night Light is scheduled</string>
+    <string name="system_conflict_scheduled_body">Night Light is off now, but its own schedule will switch it on, and from then it replaces the filter on every change. Set the Night Light schedule to None to keep the filter steady.</string>
+    <string name="system_conflict_night_light_scheduled_at">Night Light turns itself on at %1$s</string>
+    <string name="system_conflict_night_light_scheduled_sunset">Night Light turns itself on at sunset</string>
     <string name="notif_title_filtering">OpenLumen filtering</string>
     <string name="notif_title_standby">OpenLumen standby</string>
     <string name="notif_status_filtering">Filtering active</string>

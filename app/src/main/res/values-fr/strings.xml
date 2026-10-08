@@ -255,6 +255,10 @@
     <string name="system_conflict_extra_dim_on">Luminosité ultra-réduite est activée</string>
     <string name="system_conflict_inversion_on">Inversion des couleurs est activée</string>
     <string name="system_conflict_open_settings">Ouvrir les réglages</string>
+    <string name="system_conflict_scheduled_title">L\'éclairage nocturne du système a sa propre programmation</string>
+    <string name="system_conflict_scheduled_body">L\'éclairage nocturne est désactivé pour l\'instant, mais sa propre programmation va l\'activer, et il remplacera alors le filtre à chaque changement. Réglez sa programmation sur Aucune pour un filtre stable.</string>
+    <string name="system_conflict_night_light_scheduled_at">L\'éclairage nocturne s\'active à %1$s</string>
+    <string name="system_conflict_night_light_scheduled_sunset">L\'éclairage nocturne s\'active au coucher du soleil</string>
     <string name="notif_title_filtering">OpenLumen filtre</string>
     <string name="notif_title_standby">OpenLumen en veille</string>
     <string name="notif_status_filtering">Filtre actif</string>
