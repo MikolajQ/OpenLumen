@@ -474,7 +474,10 @@ class KcalEngine : ColorEngine {
             // Some Snapdragon LineageOS branches.
             "/sys/module/msm_drm/parameters",
             // Older AnyKernel ROMs (rare; included for completeness).
-            "/sys/class/misc/kcal"
+            "/sys/class/misc/kcal",
+            // Samsung Exynos kernels that expose a KCAL-compatible white point
+            // in the panel's mDNIe block (custom Galaxy A50s kernel).
+            "/sys/class/mdnie/mdnie"
         )
 
         suspend fun clearKnownPaths(): List<String> {
