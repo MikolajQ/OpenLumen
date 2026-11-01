@@ -24,16 +24,22 @@ fun Preferences.effectiveMatrix(): LumenMatrix {
 
     return scaled
         .copy(
-            gammaR = customMatrix.gammaR,
-            gammaG = customMatrix.gammaG,
-            gammaB = customMatrix.gammaB,
+            // Values stored before the sliders snapped to neutral still
+            // carry the few thousandths a finger leaves behind.
+            gammaR = Preferences.snapNeutral(customMatrix.gammaR),
+            gammaG = Preferences.snapNeutral(customMatrix.gammaG),
+            gammaB = Preferences.snapNeutral(customMatrix.gammaB),
             // A preset such as Deep Sleep or PWM Comfort owns a baseline dim,
             // and the preference is an additional control rather than a
             // replacement, so the two compose.
             dim = composeDim(scaled.dim, dim),
             amoledClamp = amoledBlackClamp
         )
-        .withContrast(contrast.coerceIn(Preferences.CONTRAST_MIN, Preferences.CONTRAST_MAX))
+        .withContrast(
+            Preferences.snapNeutral(
+                contrast.coerceIn(Preferences.CONTRAST_MIN, Preferences.CONTRAST_MAX)
+            )
+        )
 }
 
 /**
