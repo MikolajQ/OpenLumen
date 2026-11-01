@@ -8,6 +8,30 @@ object Presets {
     val RED      = LumenMatrix(r = 1.00f, g = 0.10f, b = 0.00f)
     val AMBER    = LumenMatrix(r = 1.00f, g = 0.55f, b = 0.10f)
     val SALMON   = LumenMatrix(r = 1.00f, g = 0.40f, b = 0.35f)
+    /**
+     * Amber's tint, half of it carried by luma. A full luma mapping, as in
+     * [RUBY], reads as black and white at this tint, while Amber's plain
+     * channel scale nearly erases blue, so yellow on white and blue on black
+     * lose their contrast. Each row is the tint times
+     * `0.5 * identity + 0.5 * luma` (Rec. 601, like [RUBY]): colours stay
+     * recognisable, white still lands on Amber's tint, and brightness
+     * differences the scale would discard come back.
+     */
+    val HONEY    = LumenMatrix(
+        r = 1.00f,
+        g = 0.55f,
+        b = 0.10f,
+        hasColorMatrix = true,
+        matrixRr = 0.6495f,
+        matrixRg = 0.2935f,
+        matrixRb = 0.057f,
+        matrixGr = 0.082225f,
+        matrixGg = 0.436425f,
+        matrixGb = 0.03135f,
+        matrixBr = 0.01495f,
+        matrixBg = 0.02935f,
+        matrixBb = 0.0557f
+    )
     val SEPIA    = LumenMatrix(r = 0.90f, g = 0.72f, b = 0.50f)
     /**
      * Red that keeps the picture readable. [RED] scales channels, so it keeps
@@ -129,6 +153,7 @@ object Presets {
         Entry("off",      "Off",         OFF),
         Entry("night",    "Night",       NIGHT),
         Entry("amber",    "Amber",       AMBER),
+        Entry("honey",    "Honey",       HONEY),
         Entry("red",      "Red",         RED),
         Entry("ruby",     "Ruby",        RUBY),
         Entry("salmon",   "Salmon",      SALMON),
