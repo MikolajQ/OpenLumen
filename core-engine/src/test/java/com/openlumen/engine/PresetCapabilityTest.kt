@@ -42,10 +42,46 @@ class PresetCapabilityTest {
         }
 
         assertThat(mixing.map { it.key })
-            .containsExactly("gray", "protan", "deutan", "tritan")
-        for (entry in mixing) {
+            .containsExactly("gray", "protan", "deutan", "tritan", "ruby")
+        for (entry in mixing.filter { it.key != "ruby" }) {
             assertThat(entry.matrix.daltonizer).isNotEqualTo(Daltonizer.NONE)
         }
+    }
+
+    @Test fun `ruby has no system mode but still tints the rootless driver`() {
+        // No AOSP mode maps luma into red, so the rootless driver takes the
+        // scalar fallback as a Night Light temperature. That fallback must
+        // not be neutral, or the preset would be a silent no-op there.
+        val ruby = Presets.RUBY
+        assertThat(ruby.daltonizer).isEqualTo(Daltonizer.NONE)
+        assertThat(ruby.r).isGreaterThan(ruby.g)
+        assertThat(ruby.unsupportedBy(SecureSettingsEngine().capabilities))
+            .containsExactly(EngineCapability.COLOR_MATRIX)
+        assertThat(ruby.unsupportedBy(KcalEngine().capabilities))
+            .containsExactly(EngineCapability.COLOR_MATRIX)
+    }
+
+    @Test fun `ruby carries brightness into red instead of keeping only red`() {
+        val m = Presets.RUBY.surfaceRgbMatrix()
+        fun out(r: Float, g: Float, b: Float) = floatArrayOf(
+            m[0] * r + m[1] * g + m[2] * b,
+            m[3] * r + m[4] * g + m[5] * b,
+            m[6] * r + m[7] * g + m[8] * b
+        )
+
+        // White stays at full red, with the touch of blue and no green.
+        val white = out(1f, 1f, 1f)
+        assertThat(white[0]).isWithin(1e-4f).of(1f)
+        assertThat(white[1]).isWithin(1e-4f).of(0f)
+        assertThat(white[2]).isWithin(1e-4f).of(0.05f)
+
+        // Pure red is dark, so white on a red icon keeps its shape. A plain
+        // channel scale would put both at full red.
+        assertThat(out(1f, 0f, 0f)[0]).isWithin(1e-4f).of(0.299f)
+        assertThat(Presets.RED.surfaceRgbMatrix()[0]).isWithin(1e-4f).of(1f)
+
+        // Green content, which a channel scale blanks entirely, shows.
+        assertThat(out(0f, 1f, 0f)[0]).isWithin(1e-4f).of(0.587f)
     }
 
     @Test fun `the correction modes match AOSP's own values`() {

@@ -10,6 +10,30 @@ object Presets {
     val SALMON   = LumenMatrix(r = 1.00f, g = 0.40f, b = 0.35f)
     val SEPIA    = LumenMatrix(r = 0.90f, g = 0.72f, b = 0.50f)
     /**
+     * Red that keeps the picture readable. [RED] scales channels, so it keeps
+     * only the input's own red: white on a red icon and red on white come out
+     * as two near-identical shades and the shape inside the icon is lost. This
+     * carries the input's luma into red instead, the way CF.Lumen's Red filter
+     * does (its Rec. 601 weights), with a touch of blue at the same luma so
+     * the red is less harsh. Green stays dark. The scalar triplet is the
+     * fallback for drivers with no cross-channel terms.
+     */
+    val RUBY     = LumenMatrix(
+        r = 1.00f,
+        g = 0.00f,
+        b = 0.05f,
+        hasColorMatrix = true,
+        matrixRr = 0.299f,
+        matrixRg = 0.587f,
+        matrixRb = 0.114f,
+        matrixGr = 0f,
+        matrixGg = 0f,
+        matrixGb = 0f,
+        matrixBr = 0.299f * 0.05f,
+        matrixBg = 0.587f * 0.05f,
+        matrixBb = 0.114f * 0.05f
+    )
+    /**
      * True desaturation, not a dimming. Every output channel is the Rec. 709
      * luminance of the input, which is what "grayscale" means; releases through
      * 0.7.1 shipped a flat 0.55 scale on all three channels, so the preset
@@ -106,6 +130,7 @@ object Presets {
         Entry("night",    "Night",       NIGHT),
         Entry("amber",    "Amber",       AMBER),
         Entry("red",      "Red",         RED),
+        Entry("ruby",     "Ruby",        RUBY),
         Entry("salmon",   "Salmon",      SALMON),
         Entry("sepia",    "Sepia",       SEPIA),
         Entry("gray",     "Grayscale",   GRAY),
