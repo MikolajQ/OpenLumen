@@ -10,6 +10,7 @@ fun presetNameRes(key: String): Int? = when (key) {
     "off" -> R.string.preset_name_off
     "night" -> R.string.preset_name_night
     "amber" -> R.string.preset_name_amber
+    "honey" -> R.string.preset_name_honey
     "red" -> R.string.preset_name_red
     "ruby" -> R.string.preset_name_ruby
     "salmon" -> R.string.preset_name_salmon

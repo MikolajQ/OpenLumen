@@ -42,23 +42,48 @@ class PresetCapabilityTest {
         }
 
         assertThat(mixing.map { it.key })
-            .containsExactly("gray", "protan", "deutan", "tritan", "ruby")
-        for (entry in mixing.filter { it.key != "ruby" }) {
+            .containsExactly("gray", "protan", "deutan", "tritan", "ruby", "honey")
+        for (entry in mixing.filter { it.key !in setOf("ruby", "honey") }) {
             assertThat(entry.matrix.daltonizer).isNotEqualTo(Daltonizer.NONE)
         }
     }
 
-    @Test fun `ruby has no system mode but still tints the rootless driver`() {
-        // No AOSP mode maps luma into red, so the rootless driver takes the
+    @Test fun `ruby and honey have no system mode but still tint the rootless driver`() {
+        // No AOSP mode maps luma into a tint, so the rootless driver takes the
         // scalar fallback as a Night Light temperature. That fallback must
         // not be neutral, or the preset would be a silent no-op there.
-        val ruby = Presets.RUBY
-        assertThat(ruby.daltonizer).isEqualTo(Daltonizer.NONE)
-        assertThat(ruby.r).isGreaterThan(ruby.g)
-        assertThat(ruby.unsupportedBy(SecureSettingsEngine().capabilities))
-            .containsExactly(EngineCapability.COLOR_MATRIX)
-        assertThat(ruby.unsupportedBy(KcalEngine().capabilities))
-            .containsExactly(EngineCapability.COLOR_MATRIX)
+        for (preset in listOf(Presets.RUBY, Presets.HONEY)) {
+            assertThat(preset.daltonizer).isEqualTo(Daltonizer.NONE)
+            assertThat(preset.r).isGreaterThan(preset.g)
+            assertThat(preset.unsupportedBy(SecureSettingsEngine().capabilities))
+                .containsExactly(EngineCapability.COLOR_MATRIX)
+            assertThat(preset.unsupportedBy(KcalEngine().capabilities))
+                .containsExactly(EngineCapability.COLOR_MATRIX)
+        }
+    }
+
+    @Test fun `honey keeps amber's white and half of the luma`() {
+        val m = Presets.HONEY.surfaceRgbMatrix()
+        val amber = Presets.AMBER
+        val tint = floatArrayOf(amber.r, amber.g, amber.b)
+        val luma = floatArrayOf(0.299f, 0.587f, 0.114f)
+        for (row in 0 until 3) {
+            // White lands on Amber's tint, so the two read as the same filter.
+            val sum = m[row * 3] + m[row * 3 + 1] + m[row * 3 + 2]
+            assertThat(sum).isWithin(1e-4f).of(tint[row])
+            for (col in 0 until 3) {
+                val identity = if (row == col) 1f else 0f
+                assertThat(m[row * 3 + col])
+                    .isWithin(1e-4f).of(tint[row] * (0.5f * identity + 0.5f * luma[col]))
+            }
+        }
+        // Yellow on white: Amber's scale leaves them apart only by its 10%
+        // blue. Honey separates them further.
+        fun gap(m: FloatArray): Float = (0 until 3).sumOf { row ->
+            // white minus yellow is the blue input alone
+            Math.abs(m[row * 3 + 2]).toDouble()
+        }.toFloat()
+        assertThat(gap(m)).isGreaterThan(gap(amber.surfaceRgbMatrix()))
     }
 
     @Test fun `ruby carries brightness into red instead of keeping only red`() {
