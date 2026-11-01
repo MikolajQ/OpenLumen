@@ -11,6 +11,7 @@ fun presetNameRes(key: String): Int? = when (key) {
     "night" -> R.string.preset_name_night
     "amber" -> R.string.preset_name_amber
     "red" -> R.string.preset_name_red
+    "ruby" -> R.string.preset_name_ruby
     "salmon" -> R.string.preset_name_salmon
     "sepia" -> R.string.preset_name_sepia
     "gray" -> R.string.preset_name_gray

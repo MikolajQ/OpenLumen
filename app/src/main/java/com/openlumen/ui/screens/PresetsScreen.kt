@@ -63,6 +63,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.openlumen.R
+import com.openlumen.engine.Daltonizer
 import com.openlumen.engine.DriverProbe
 import com.openlumen.engine.EngineCapability
 import com.openlumen.engine.unsupportedBy
@@ -594,7 +595,9 @@ private fun PresetDetailPane(
             }
         }
 
-        if (m.hasColorMatrix) {
+        // The mode, not the matrix: Ruby mixes channels too, and it is not a
+        // colour-vision adjustment.
+        if (m.daltonizer != Daltonizer.NONE) {
             item {
                 Card(
                     shape = MaterialTheme.shapes.medium,
