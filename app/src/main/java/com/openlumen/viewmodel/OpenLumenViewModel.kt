@@ -237,9 +237,11 @@ class OpenLumenViewModel @Inject constructor(
     override fun setContrast(value: Float) = viewModelScope.launch {
         prefs.update {
             it.copy(
-                contrast = value.coerceIn(
-                    com.openlumen.prefs.Preferences.CONTRAST_MIN,
-                    com.openlumen.prefs.Preferences.CONTRAST_MAX
+                contrast = com.openlumen.prefs.Preferences.snapNeutral(
+                    value.coerceIn(
+                        com.openlumen.prefs.Preferences.CONTRAST_MIN,
+                        com.openlumen.prefs.Preferences.CONTRAST_MAX
+                    )
                 )
             )
         }
@@ -278,9 +280,9 @@ class OpenLumenViewModel @Inject constructor(
         prefs.update {
             it.copy(
                 customMatrix = it.customMatrix.copy(
-                    gammaR = r.coerceIn(0.5f, 2.5f),
-                    gammaG = g.coerceIn(0.5f, 2.5f),
-                    gammaB = b.coerceIn(0.5f, 2.5f)
+                    gammaR = com.openlumen.prefs.Preferences.snapNeutral(r.coerceIn(0.5f, 2.5f)),
+                    gammaG = com.openlumen.prefs.Preferences.snapNeutral(g.coerceIn(0.5f, 2.5f)),
+                    gammaB = com.openlumen.prefs.Preferences.snapNeutral(b.coerceIn(0.5f, 2.5f))
                 )
             )
         }

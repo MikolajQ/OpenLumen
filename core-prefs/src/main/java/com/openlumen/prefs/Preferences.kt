@@ -295,6 +295,20 @@ data class Preferences(
         const val CONTRAST_MAX: Float = 2.0f
 
         /**
+         * How close to 1.0 a contrast or gamma slider has to land to count as
+         * neutral. The sliders are continuous, so a finger dropping one back at
+         * "100%" leaves something like 0.995, and a contrast of 0.995 adds a
+         * 0.24% bias to every channel: black stops being black and every
+         * subpixel of an OLED panel stays lit, which is exactly what the
+         * AMOLED black clamp is there to prevent.
+         */
+        const val NEUTRAL_SNAP: Float = 0.02f
+
+        /** [value], or exactly 1.0 when it is within [NEUTRAL_SNAP] of it. */
+        fun snapNeutral(value: Float): Float =
+            if (kotlin.math.abs(value - 1f) <= NEUTRAL_SNAP) 1f else value
+
+        /**
          * Maximum number of [NamedProfile] entries persisted. Bounds the size
          * of the JSON blob and the rendering cost of the in-app profile
          * list. Sanitize drops the tail beyond this.
