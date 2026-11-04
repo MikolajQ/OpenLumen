@@ -12,26 +12,12 @@ object Presets {
      * Amber's tint, half of it carried by luma. A full luma mapping, as in
      * [RUBY], reads as black and white at this tint, while Amber's plain
      * channel scale nearly erases blue, so yellow on white and blue on black
-     * lose their contrast. Each row is the tint times
-     * `0.5 * identity + 0.5 * luma` (Rec. 601, like [RUBY]): colours stay
-     * recognisable, white still lands on Amber's tint, and brightness
-     * differences the scale would discard come back.
+     * lose their contrast. At half, colours stay recognisable, white still
+     * lands on Amber's tint, and brightness differences the scale would
+     * discard come back. See [Tint] for the matrix.
      */
-    val HONEY    = LumenMatrix(
-        r = 1.00f,
-        g = 0.55f,
-        b = 0.10f,
-        hasColorMatrix = true,
-        matrixRr = 0.6495f,
-        matrixRg = 0.2935f,
-        matrixRb = 0.057f,
-        matrixGr = 0.082225f,
-        matrixGg = 0.436425f,
-        matrixGb = 0.03135f,
-        matrixBr = 0.01495f,
-        matrixBg = 0.02935f,
-        matrixBb = 0.0557f
-    )
+    val HONEY_TINT = Tint(r = 1.00f, g = 0.55f, b = 0.10f, lumaShare = 0.5f)
+    val HONEY    = HONEY_TINT.toMatrix()
     val SEPIA    = LumenMatrix(r = 0.90f, g = 0.72f, b = 0.50f)
     /**
      * Red that keeps the picture readable. [RED] scales channels, so it keeps
@@ -42,21 +28,8 @@ object Presets {
      * the red is less harsh. Green stays dark. The scalar triplet is the
      * fallback for drivers with no cross-channel terms.
      */
-    val RUBY     = LumenMatrix(
-        r = 1.00f,
-        g = 0.00f,
-        b = 0.05f,
-        hasColorMatrix = true,
-        matrixRr = 0.299f,
-        matrixRg = 0.587f,
-        matrixRb = 0.114f,
-        matrixGr = 0f,
-        matrixGg = 0f,
-        matrixGb = 0f,
-        matrixBr = 0.299f * 0.05f,
-        matrixBg = 0.587f * 0.05f,
-        matrixBb = 0.114f * 0.05f
-    )
+    val RUBY_TINT = Tint(r = 1.00f, g = 0.00f, b = 0.05f, lumaShare = 1f)
+    val RUBY     = RUBY_TINT.toMatrix()
     /**
      * True desaturation, not a dimming. Every output channel is the Rec. 709
      * luminance of the input, which is what "grayscale" means; releases through
@@ -147,18 +120,37 @@ object Presets {
         matrixBb = 0.14076f
     )
 
-    data class Entry(val key: String, val displayName: String, val matrix: LumenMatrix)
+    /**
+     * [tint] is the colour the preset is built from, for showing it next to
+     * the custom controls and copying it into them. A channel-scale preset is
+     * its own tint at a luma share of 0. Null where there is no tint to show:
+     * Off, and the colour-vision presets, which remap colours rather than
+     * tint them.
+     */
+    data class Entry(
+        val key: String,
+        val displayName: String,
+        val matrix: LumenMatrix,
+        val tint: Tint? = matrix.channelTint()
+    )
+
+    /**
+     * Grayscale as a tint: white at a luma share of 1. Its own matrix uses
+     * Rec. 709 weights and a tint uses Rec. 601, so a copy differs slightly
+     * in how bright pure red and blue come out.
+     */
+    val GRAY_TINT = Tint(r = 1f, g = 1f, b = 1f, lumaShare = 1f)
 
     val ALL: List<Entry> = listOf(
-        Entry("off",      "Off",         OFF),
+        Entry("off",      "Off",         OFF, tint = null),
         Entry("night",    "Night",       NIGHT),
         Entry("amber",    "Amber",       AMBER),
-        Entry("honey",    "Honey",       HONEY),
+        Entry("honey",    "Honey",       HONEY, HONEY_TINT),
         Entry("red",      "Red",         RED),
-        Entry("ruby",     "Ruby",        RUBY),
+        Entry("ruby",     "Ruby",        RUBY, RUBY_TINT),
         Entry("salmon",   "Salmon",      SALMON),
         Entry("sepia",    "Sepia",       SEPIA),
-        Entry("gray",     "Grayscale",   GRAY),
+        Entry("gray",     "Grayscale",   GRAY, GRAY_TINT),
         Entry("deep",     "Deep Sleep",  DEEP),
         Entry("pwm",      "PWM Comfort", PWM),
         Entry("protan",   "Protan",      PROTAN),
@@ -168,3 +160,6 @@ object Presets {
 
     fun byKey(key: String): Entry? = ALL.firstOrNull { it.key == key }
 }
+
+private fun LumenMatrix.channelTint(): Tint? =
+    if (hasColorMatrix || daltonizer != Daltonizer.NONE) null else Tint(r, g, b)
