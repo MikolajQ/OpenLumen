@@ -283,6 +283,7 @@ private class PreviewScreenModel(
     override fun reconcileExactAlarmPermission(): Job = Job()
     override fun setLightSensor(enabled: Boolean, threshold: Float): Job = Job()
     override fun setTransitionDuration(durationMs: Long): Job = Job()
+    override fun setFadeDuration(durationMs: Long): Job = Job()
     override fun refreshProbes(): Job = Job()
     override fun buildDriverReport(): String = "OpenLumen production screenshot preview"
     override fun exportTo(uri: Uri): Job = Job()

@@ -1,6 +1,7 @@
 package com.openlumen.service
 
 import android.content.Context
+import android.os.PowerManager
 import android.util.Log
 import com.openlumen.diagnostics.DiagnosticsLog
 import com.openlumen.engine.ColorEngine
@@ -10,6 +11,7 @@ import com.openlumen.engine.EngineResult
 import com.openlumen.engine.EngineKind
 import com.openlumen.engine.LumenMatrix
 import com.openlumen.engine.Presets
+import com.openlumen.engine.Su
 import com.openlumen.engine.engines.OverlayEngine
 import com.openlumen.prefs.DirectBootState
 import com.openlumen.prefs.EngineKindDto
@@ -23,6 +25,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.math.abs
+import kotlin.math.ceil
 
 /**
  * Owns active engine selection, serialized apply/clear calls, and ramp jobs.
@@ -40,6 +44,21 @@ internal class EngineController(
     private val applyMutex = Mutex()
     private val rampMutex = Mutex()
     @Volatile private var lastApplied: LumenMatrix? = null
+
+    /**
+     * What the display shows while nothing has been applied in this process
+     * yet, when that is known: identity after this controller cleared an
+     * engine, or when the service learned at start that the filter was off.
+     * It is what a fade in starts from. Null means unknown -- a restart with a
+     * transform still on the panel -- and the first apply then lands at once,
+     * as before, rather than flashing back to identity to fade from there.
+     */
+    @Volatile private var assumedOutput: LumenMatrix? = null
+
+    /** Where the running fade is heading, for [finishTransitionNow]. */
+    @Volatile private var transitionTarget: Pair<Boolean, LumenMatrix>? = null
+    private val powerManager: PowerManager? =
+        runCatching { context.getSystemService(PowerManager::class.java) }.getOrNull()
     private val applyGate = ApplyDecisionGate()
     @Volatile private var cachedAutoKind: EngineKind? = null
     @Volatile private var lastEngineSelection: EngineKindDto? = null
@@ -83,6 +102,7 @@ internal class EngineController(
                     )
                     engine = null
                     lastApplied = null
+                    assumedOutput = LumenMatrix.IDENTITY
                     applyGate.reset()
                 }
             }
@@ -117,6 +137,9 @@ internal class EngineController(
             }
             engine = next
             lastApplied = null
+            // The previous driver has just been cleared, so the new one fades
+            // in from an unfiltered screen.
+            if (current != null) assumedOutput = LumenMatrix.IDENTITY
             applyGate.reset()
             DiagnosticsLog.log(
                 context,
@@ -129,9 +152,9 @@ internal class EngineController(
 
     /**
      * [ramp] asks for the transition fade even when the filter stays on, for
-     * the day filter handing over to the evening preset and back: to the gate
-     * that is one active target replacing another, which a slider drag also
-     * is, and a slider drag must not fade.
+     * the day filter handing over to the evening preset and back, or a new
+     * preset picked: to the gate that is one active target replacing another,
+     * which a slider drag also is, and a slider drag must not fade.
      */
     suspend fun applyIfNeeded(
         shouldBeActive: Boolean,
@@ -147,6 +170,72 @@ internal class EngineController(
 
     /** The driver currently applying, or null before the first engine is chosen. */
     fun activeEngineKind(): EngineKind? = engine?.kind
+
+    /**
+     * The service read at start that the filter was off, so the display shows
+     * no transform and the first apply can fade in from identity. Ignored once
+     * something has been applied.
+     */
+    fun assumeIdentityOnScreen() {
+        if (lastApplied == null) assumedOutput = LumenMatrix.IDENTITY
+    }
+
+    /**
+     * Fade what is on screen to identity, for a turn-off, and return once it
+     * is there or the fade was cancelled. The caller clears the engine after
+     * this as before; the fade only decides how the screen gets there.
+     *
+     * Runs as the transition job rather than under the ramp lock, so an
+     * emergency turn-off arriving in the middle still cancels it at once.
+     * The gate is reset first: from the first frame the screen no longer shows
+     * the committed target, and a turn-on arriving mid-fade must apply again
+     * rather than be dropped as a duplicate.
+     *
+     * One turn-off can ask twice -- the notification's Off fades, and the
+     * `enabled = false` it writes fades again on the preference collector --
+     * so a second caller waits for the fade already running instead of
+     * restarting it, which would let the first caller's clear cut it short.
+     */
+    suspend fun fadeToIdentity(durationMs: Long) {
+        val job = rampMutex.withLock {
+            val running = transitionJob
+            if (running?.isActive == true && transitionTarget == FADE_OUT_TARGET) return@withLock running
+            cancelTransitionLocked()
+            val from = lastApplied ?: return
+            if (durationMs <= 0L || from == LumenMatrix.IDENTITY || engine == null || !screenInteractive()) {
+                return
+            }
+            applyGate.reset()
+            transitionTarget = FADE_OUT_TARGET
+            scope.launch {
+                try {
+                    runFade(from, LumenMatrix.IDENTITY, durationMs) {}
+                } catch (_: CancellationException) {
+                    // A turn-on, the hard clear or the screen going off won.
+                } catch (t: Throwable) {
+                    Log.w(logTag, "fade out aborted: ${t.message}")
+                }
+            }.also { transitionJob = it }
+        }
+        job.join()
+    }
+
+    /**
+     * Land a running fade on its target now. The screen went off: nobody sees
+     * the rest of it, and a fade that kept going would freeze when the device
+     * sleeps and resume, part way, when the screen comes back.
+     */
+    suspend fun finishTransitionNow() {
+        rampMutex.withLock {
+            if (transitionJob?.isActive != true) return
+            val (shouldBeActive, target) = transitionTarget ?: return
+            cancelTransitionLocked()
+            if (applyOnce(target)) applyGate.commit(shouldBeActive, target) else applyGate.reset()
+        }
+    }
+
+    private fun screenInteractive(): Boolean =
+        runCatching { powerManager?.isInteractive }.getOrNull() ?: true
 
     /**
      * Put the committed target back after the system has written its own
@@ -228,6 +317,7 @@ internal class EngineController(
                 .onFailure { Log.w(logTag, "root hard clear failed: ${it.message}") }
             engine = null
             lastApplied = null
+            assumedOutput = LumenMatrix.IDENTITY
             applyGate.reset()
             cachedAutoKind = null
         }
@@ -272,6 +362,7 @@ internal class EngineController(
     fun cancelJobs() {
         transitionJob?.cancel()
         transitionJob = null
+        transitionTarget = null
     }
 
     /**
@@ -399,50 +490,89 @@ internal class EngineController(
         rampMutex.withLock {
             cancelTransitionLocked()
 
-           val previous = lastApplied
-            if (durationMs <= 0 || previous == null || previous == decision.matrix) {
+            val previous = lastApplied ?: assumedOutput
+            // A fade nobody can see is only cost: land the target at once.
+            val fadeMs = if (screenInteractive()) durationMs else 0L
+            if (fadeMs <= 0 || previous == null || previous == decision.matrix) {
                 if (applyOnce(decision.matrix)) {
                     applyGate.commit(shouldBeActive, decision.matrix)
                 } else {
                     applyGate.reset()
                 }
-           } else {
-               val totalSteps = (durationMs / 1_000L).coerceAtLeast(2L).coerceAtMost(MAX_RAMP_STEPS.toLong())
-               val stepMs = (durationMs / totalSteps).coerceAtLeast(MIN_RAMP_STEP_MS)
-
-               transitionJob = scope.launch {
+            } else {
+                transitionTarget = shouldBeActive to decision.matrix
+                transitionJob = scope.launch {
                     var committed = false
                     var completed = false
-                   try {
-                       val startNs = System.nanoTime()
-                       while (isActive) {
-                           val elapsedMs = (System.nanoTime() - startNs) / 1_000_000L
-                           val t = (elapsedMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-                            val step = previous.lerp(decision.matrix, t)
-                            if (!applyOnce(step)) {
-                                applyGate.reset()
-                                return@launch
-                            }
+                    try {
+                        completed = runFade(previous, decision.matrix, fadeMs) {
                             if (!committed) {
                                 applyGate.commit(shouldBeActive, decision.matrix)
                                 committed = true
                             }
-                           if (t >= 1f) break
-                           delay(stepMs)
-                       }
-                        completed = true
-                   } catch (_: CancellationException) {
-                       // Expected when a newer target, engine switch, or manual off wins.
-                   } catch (t: Throwable) {
-                       Log.w(logTag, "transition ramp aborted: ${t.message}")
-                   }
+                        }
+                        if (!completed) applyGate.reset()
+                    } catch (_: CancellationException) {
+                        // Expected when a newer target, engine switch, or manual off wins.
+                    } catch (t: Throwable) {
+                        Log.w(logTag, "transition ramp aborted: ${t.message}")
+                    }
                     if (!completed && committed) {
                         applyGate.reset()
                     }
-               }
-           }
-       }
-   }
+                }
+            }
+        }
+    }
+
+    /**
+     * Step the display from [from] to [to] over [durationMs]; false when a
+     * frame was refused.
+     *
+     * The number of frames follows the size of the change, about 1% of full
+     * scale per frame ([planFade]), and never comes closer together than the
+     * driver allows, so a one-second fade is about twenty frames and a
+     * five-minute one about a hundred, not three hundred. Progress follows
+     * the clock, not the frame count: a frame that ran late is not replayed,
+     * the next one lands where the fade should be by then. The curve eases in
+     * and out, which reads as one movement instead of a start and a stop.
+     *
+     * All frames share one root shell ([Su.withSession]): starting `su` cost
+     * as much as the frame itself.
+     */
+    private suspend fun runFade(
+        from: LumenMatrix,
+        to: LumenMatrix,
+        durationMs: Long,
+        onFrame: () -> Unit
+    ): Boolean {
+        val plan = planFade(from, to, durationMs, engine?.minFadeFrameMs ?: ColorEngine.DEFAULT_MIN_FADE_FRAME_MS)
+        // A change too small to step through is not worth waiting a frame for.
+        if (plan.frames <= 1) return applyOnce(to).also { if (it) onFrame() }
+        return Su.withSession {
+            val startNs = System.nanoTime()
+            fun elapsedMs() = (System.nanoTime() - startNs) / 1_000_000L
+            var frame = 0
+            var outcome: Boolean? = null
+            while (outcome == null) {
+                frame++
+                val dueMs = frame * plan.frameMs
+                val waitMs = dueMs - elapsedMs()
+                if (waitMs > 0) delay(waitMs)
+                val elapsed = elapsedMs()
+                if (elapsed > dueMs) frame = (elapsed / plan.frameMs).toInt().coerceAtLeast(frame)
+                val t = if (frame >= plan.frames) 1f else (elapsed.toFloat() / durationMs).coerceIn(0f, 1f)
+                outcome = when {
+                    !applyOnce(from.lerp(to, easeInOut(t))) -> false
+                    else -> {
+                        onFrame()
+                        if (t >= 1f) true else null
+                    }
+                }
+            }
+            outcome == true
+        }
+    }
 
     private suspend fun cancelTransition() {
         rampMutex.withLock { cancelTransitionLocked() }
@@ -457,6 +587,7 @@ internal class EngineController(
             // CancellationException expected.
         }
         transitionJob = null
+        transitionTarget = null
     }
 
     private suspend fun applyOnce(matrix: LumenMatrix): Boolean {
@@ -556,9 +687,41 @@ internal class EngineController(
         }
     }
 
+    internal data class FadePlan(val frames: Int, val frameMs: Long)
+
     internal companion object {
-        const val MIN_RAMP_STEP_MS = 200L
-        const val MAX_RAMP_STEPS = 600
+        private val FADE_OUT_TARGET: Pair<Boolean, LumenMatrix> = false to LumenMatrix.IDENTITY
+
+        /** Average change per frame, as a fraction of full scale. */
+        const val FADE_STEP = 0.01f
+        const val MAX_FADE_FRAMES = 200
+
+        /**
+         * Frames for a fade from [from] to [to]: enough that no coefficient of
+         * the compositor's matrix moves more than [FADE_STEP] per frame on
+         * average, and no more than [minFrameMs] allows in [durationMs].
+         */
+        internal fun planFade(
+            from: LumenMatrix,
+            to: LumenMatrix,
+            durationMs: Long,
+            minFrameMs: Long
+        ): FadePlan {
+            val a = from.toSurfaceFlinger16()
+            val b = to.toSurfaceFlinger16()
+            var delta = abs(from.effectiveDim - to.effectiveDim)
+            for (i in a.indices) delta = maxOf(delta, abs(a[i] - b[i]))
+            val byChange = ceil(delta / FADE_STEP).toInt()
+            val byTime = (durationMs / minFrameMs.coerceAtLeast(1L)).toInt()
+            val frames = minOf(byChange, byTime, MAX_FADE_FRAMES).coerceAtLeast(1)
+            return FadePlan(frames = frames, frameMs = (durationMs / frames).coerceAtLeast(1L))
+        }
+
+        /** Smoothstep: slow at both ends, fastest in the middle. */
+        internal fun easeInOut(t: Float): Float {
+            val u = t.coerceIn(0f, 1f)
+            return u * u * (3f - 2f * u)
+        }
 
         /**
          * Whether a pinned (non-Auto) driver should be used for this apply.

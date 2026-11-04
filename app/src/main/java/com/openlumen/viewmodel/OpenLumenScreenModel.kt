@@ -99,6 +99,7 @@ interface OpenLumenScreenModel {
     fun reconcileExactAlarmPermission(): Job
     fun setLightSensor(enabled: Boolean, threshold: Float): Job
     fun setTransitionDuration(durationMs: Long): Job
+    fun setFadeDuration(durationMs: Long): Job
     fun refreshProbes(): Job
     fun buildDriverReport(): String
     fun exportTo(uri: Uri): Job

@@ -360,6 +360,7 @@ class PreferencesStore(
         presetUsage = sanitizePresetUsage(p.presetUsage),
         presetNameOverrides = sanitizePresetNameOverrides(p.presetNameOverrides),
         transitionDurationMs = p.transitionDurationMs.coerceIn(0L, Preferences.TRANSITION_MAX_MS),
+        fadeDurationMs = p.fadeDurationMs.coerceIn(0L, Preferences.FADE_MAX_MS),
         contrast = p.contrast.finiteIn(Preferences.CONTRAST_MIN, Preferences.CONTRAST_MAX, default = 1.0f),
         savedProfiles = sanitizeProfiles(p.savedProfiles),
         automationToken = AutomationToken.sanitize(p.automationToken)

@@ -8,6 +8,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -53,6 +54,7 @@ import com.openlumen.service.ExactAlarmAccess
 import com.openlumen.ui.components.PreferencesPlaceholder
 import com.openlumen.ui.components.LightSensorCard
 import com.openlumen.ui.components.LumenButton
+import com.openlumen.ui.components.LumenFilterChip
 import com.openlumen.ui.components.LocationEntryDialog
 import com.openlumen.ui.components.LumenOutlinedButton
 import com.openlumen.ui.components.LumenSwitch
@@ -635,6 +637,34 @@ fun ScheduleScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                // The short fade first: it applies to every change, and the
+                // schedule transition below can only make a schedule change
+                // slower than it.
+                Text(
+                    stringResource(R.string.fade_duration_title),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    stringResource(R.string.fade_duration_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                val fadeOptions = listOf(
+                    0L to stringResource(R.string.transition_instant),
+                    500L to stringResource(R.string.fade_half_second),
+                    1_000L to stringResource(R.string.fade_1s),
+                    2_000L to stringResource(R.string.fade_2s),
+                    3_000L to stringResource(R.string.fade_3s)
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    fadeOptions.forEach { (durationMs, label) ->
+                        LumenFilterChip(
+                            selected = prefs.fadeDurationMs == durationMs,
+                            onClick = { vm.setFadeDuration(durationMs) }
+                        ) { Text(label) }
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
                 Text(
                     stringResource(R.string.transition_duration_title),
                     style = MaterialTheme.typography.titleSmall
@@ -645,7 +675,13 @@ fun ScheduleScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 val options = listOf(
-                    0L to stringResource(R.string.transition_instant),
+                    0L to stringResource(
+                        if (prefs.fadeDurationMs > 0L) {
+                            R.string.transition_same_as_fade
+                        } else {
+                            R.string.transition_instant
+                        }
+                    ),
                     30_000L to stringResource(R.string.transition_30s),
                     60_000L to stringResource(R.string.transition_1m),
                     3L * 60_000L to stringResource(R.string.transition_3m),

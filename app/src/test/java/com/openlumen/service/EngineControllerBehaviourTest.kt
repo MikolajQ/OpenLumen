@@ -232,6 +232,130 @@ class EngineControllerBehaviourTest {
         assertThat(reasserted).isFalse()
         assertThat(overlay.calls).containsExactly("apply")
     }
+
+    private fun waitUntil(timeoutMs: Long = 10_000, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (!condition() && System.currentTimeMillis() < deadline) Thread.sleep(10)
+        assertThat(condition()).isTrue()
+    }
+
+    @Test fun `a filter switched on from off fades in from identity`() {
+        val engine = RecordingEngine(EngineKind.OVERLAY)
+        val controller = controllerFor(engine)
+        runBlocking {
+            controller.ensureEngineFor(prefsFor(EngineKindDto.Overlay))
+            controller.assumeIdentityOnScreen()
+            controller.applyIfNeeded(true, Presets.RUBY, transitionDurationMs = 300)
+        }
+
+        waitUntil { engine.applied.lastOrNull() == Presets.RUBY }
+        assertThat(engine.applied.size).isAtLeast(3)
+        // The first frame is already a step: identity is what is on screen.
+        assertThat(engine.applied.first()).isNotEqualTo(LumenMatrix.IDENTITY)
+        assertThat(engine.applied.first()).isNotEqualTo(Presets.RUBY)
+    }
+
+    @Test fun `with nothing known about the screen the first apply lands at once`() {
+        // A restart can leave a tint on the panel; fading from identity would
+        // flash the screen white first.
+        val engine = RecordingEngine(EngineKind.OVERLAY)
+        val controller = controllerFor(engine)
+        runBlocking {
+            controller.ensureEngineFor(prefsFor(EngineKindDto.Overlay))
+            controller.applyIfNeeded(true, Presets.RUBY, transitionDurationMs = 300)
+        }
+
+        assertThat(engine.applied).containsExactly(Presets.RUBY)
+    }
+
+    @Test fun `turning off fades to identity before returning`() {
+        val engine = RecordingEngine(EngineKind.OVERLAY)
+        val controller = controllerFor(engine)
+        runBlocking {
+            controller.ensureEngineFor(prefsFor(EngineKindDto.Overlay))
+            controller.applyIfNeeded(true, Presets.RUBY, transitionDurationMs = 0)
+            controller.fadeToIdentity(300)
+        }
+
+        assertThat(engine.applied.size).isAtLeast(3)
+        assertThat(engine.applied.last()).isEqualTo(LumenMatrix.IDENTITY)
+    }
+
+    @Test fun `a turn-on after a fade out applies again`() {
+        // The fade leaves the screen at identity, so the committed target must
+        // not be treated as still showing.
+        val engine = RecordingEngine(EngineKind.OVERLAY)
+        val controller = controllerFor(engine)
+        runBlocking {
+            controller.ensureEngineFor(prefsFor(EngineKindDto.Overlay))
+            controller.applyIfNeeded(true, Presets.RUBY, transitionDurationMs = 0)
+            controller.fadeToIdentity(200)
+            controller.applyIfNeeded(true, Presets.RUBY, transitionDurationMs = 0)
+        }
+
+        assertThat(engine.applied.last()).isEqualTo(Presets.RUBY)
+    }
+
+    @Test fun `two turn-offs share one fade instead of restarting it`() {
+        // The notification's Off and the preference it writes both fade.
+        val engine = RecordingEngine(EngineKind.OVERLAY)
+        val controller = controllerFor(engine)
+        runBlocking {
+            controller.ensureEngineFor(prefsFor(EngineKindDto.Overlay))
+            controller.applyIfNeeded(true, Presets.RUBY, transitionDurationMs = 0)
+        }
+        val first = scope.launch { controller.fadeToIdentity(500) }
+        waitUntil { engine.applied.size >= 3 }
+        runBlocking {
+            controller.fadeToIdentity(500)
+            first.join()
+        }
+
+        // One apply for Ruby, then the ten frames of a single half-second fade.
+        assertThat(engine.applied.size).isEqualTo(11)
+        assertThat(engine.applied.last()).isEqualTo(LumenMatrix.IDENTITY)
+    }
+
+    @Test fun `a fade cut short by the screen going off lands on its target`() {
+        val engine = RecordingEngine(EngineKind.OVERLAY)
+        val controller = controllerFor(engine)
+        runBlocking {
+            controller.ensureEngineFor(prefsFor(EngineKindDto.Overlay))
+            controller.assumeIdentityOnScreen()
+            controller.applyIfNeeded(true, Presets.RUBY, transitionDurationMs = 20_000)
+        }
+        waitUntil { engine.applied.isNotEmpty() }
+
+        runBlocking { controller.finishTransitionNow() }
+        val afterFinish = engine.applied.size
+        Thread.sleep(500)
+
+        assertThat(engine.applied.last()).isEqualTo(Presets.RUBY)
+        assertThat(engine.applied.size).isEqualTo(afterFinish)
+    }
+
+    @Test fun `fade frames follow the size of the change and the frame gap`() {
+        // Identity to Ruby moves green from 1 to 0: a hundred 1% steps.
+        val short = EngineController.planFade(LumenMatrix.IDENTITY, Presets.RUBY, 1_000, minFrameMs = 50)
+        assertThat(short).isEqualTo(EngineController.FadePlan(frames = 20, frameMs = 50))
+
+        val long = EngineController.planFade(LumenMatrix.IDENTITY, Presets.RUBY, 5 * 60_000, minFrameMs = 50)
+        assertThat(long).isEqualTo(EngineController.FadePlan(frames = 100, frameMs = 3_000))
+
+        val tiny = EngineController.planFade(Presets.NIGHT, Presets.NIGHT.copy(r = 0.995f), 1_000, minFrameMs = 50)
+        assertThat(tiny.frames).isEqualTo(1)
+
+        val secureSettings = EngineController.planFade(LumenMatrix.IDENTITY, Presets.RUBY, 3_000, minFrameMs = 1_000)
+        assertThat(secureSettings.frames).isEqualTo(3)
+    }
+
+    @Test fun `the fade curve eases in and out`() {
+        assertThat(EngineController.easeInOut(0f)).isEqualTo(0f)
+        assertThat(EngineController.easeInOut(0.5f)).isEqualTo(0.5f)
+        assertThat(EngineController.easeInOut(1f)).isEqualTo(1f)
+        assertThat(EngineController.easeInOut(0.1f)).isLessThan(0.1f)
+        assertThat(EngineController.easeInOut(0.9f)).isGreaterThan(0.9f)
+    }
 }
 
 /** Records the order of engine calls so a sequence can be asserted. */

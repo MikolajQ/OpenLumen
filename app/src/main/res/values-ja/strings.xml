@@ -135,8 +135,8 @@
     <string name="schedule_sunrise_offset">日の出のオフセット: %1$d 分</string>
     <string name="schedule_sunset_offset_name">日没オフセット</string>
     <string name="schedule_sunrise_offset_name">日の出オフセット</string>
-    <string name="transition_duration_title">トランジション時間</string>
-    <string name="transition_duration_subtitle">スケジュールの切替時にフィルターがフェードイン・フェードアウトする滑らかさを設定します。スライダーやプリセットの手動操作は即時反映されます。</string>
+    <string name="transition_duration_title">スケジュールの切替</string>
+    <string name="transition_duration_subtitle">日没・日の出や時間帯の境目でフィルターが変化する速さです。上のフェードより速くなることはありません。</string>
     <string name="transition_instant">即時</string>
     <string name="transition_30s">30秒</string>
     <string name="transition_1m">1分</string>
@@ -147,6 +147,13 @@
     <string name="transition_custom">カスタム</string>
     <string name="transition_custom_value">%1$d分</string>
     <string name="transition_custom_name">カスタムの切り替え時間</string>
+    <string name="transition_same_as_fade">フェードと同じ</string>
+    <string name="fade_duration_title">切替時のフェード</string>
+    <string name="fade_duration_subtitle">フィルターのオン・オフやプリセットの選択は、この時間をかけてフェードします。スライダーは即時反映されます。</string>
+    <string name="fade_half_second">0.5秒</string>
+    <string name="fade_1s">1秒</string>
+    <string name="fade_2s">2秒</string>
+    <string name="fade_3s">3秒</string>
 
     <string name="driver_title">ディスプレイドライバー</string>
     <string name="driver_auto">自動（最適なものを選択）</string>

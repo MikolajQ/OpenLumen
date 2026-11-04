@@ -125,6 +125,13 @@ class SecureSettingsEngine : ColorEngine {
      * sub-minimum dim, but only where the device ships it, so callers should
      * still check `acceptedKeys`.
      */
+    /**
+     * Every frame is a round of secure-setting writes, each one waking the
+     * system's colour service, which then animates towards the new value on
+     * its own. A frame a second is as fine a step as that can show.
+     */
+    override val minFadeFrameMs: Long = 1_000L
+
     override val capabilities: Set<EngineCapability>
         get() = buildSet {
             add(EngineCapability.SYSTEM_COLOR_CORRECTION)

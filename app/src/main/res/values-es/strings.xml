@@ -135,8 +135,8 @@
     <string name="schedule_sunrise_offset">Desfase del amanecer: %1$d min</string>
     <string name="schedule_sunset_offset_name">Desfase del atardecer</string>
     <string name="schedule_sunrise_offset_name">Desfase del amanecer</string>
-    <string name="transition_duration_title">Duración de la transición</string>
-    <string name="transition_duration_subtitle">Qué tan suavemente se atenúa o desvanece el filtro en los límites del horario. Los cambios manuales (deslizadores, toques en ajustes) son instantáneos.</string>
+    <string name="transition_duration_title">Transición del horario</string>
+    <string name="transition_duration_subtitle">Qué tan despacio cambia el filtro al atardecer, al amanecer y en los límites del horario. Nunca es más rápida que el fundido de arriba.</string>
     <string name="transition_instant">Instantáneo</string>
     <string name="transition_30s">30 segundos</string>
     <string name="transition_1m">1 minuto</string>
@@ -147,6 +147,13 @@
     <string name="transition_custom">Personalizado</string>
     <string name="transition_custom_value">%1$d min</string>
     <string name="transition_custom_name">Duración de transición personalizada</string>
+    <string name="transition_same_as_fade">Igual que el fundido</string>
+    <string name="fade_duration_title">Fundido al cambiar</string>
+    <string name="fade_duration_subtitle">Encender o apagar el filtro y elegir un ajuste se funden durante este tiempo. Los deslizadores son instantáneos.</string>
+    <string name="fade_half_second">0,5 s</string>
+    <string name="fade_1s">1 s</string>
+    <string name="fade_2s">2 s</string>
+    <string name="fade_3s">3 s</string>
 
     <string name="driver_title">Controlador de pantalla</string>
     <string name="driver_auto">Automático (mejor disponible)</string>

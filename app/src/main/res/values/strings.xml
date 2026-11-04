@@ -160,8 +160,8 @@
     <string name="schedule_sunrise_offset">Sunrise offset: %1$d min</string>
     <string name="schedule_sunset_offset_name">Sunset offset</string>
     <string name="schedule_sunrise_offset_name">Sunrise offset</string>
-    <string name="transition_duration_title">Transition duration</string>
-    <string name="transition_duration_subtitle">How smoothly the filter fades in or out at schedule boundaries. User-driven changes (sliders, preset taps) remain instant.</string>
+    <string name="transition_duration_title">Schedule transition</string>
+    <string name="transition_duration_subtitle">How slowly the filter changes at sunset, sunrise and the edges of the time window. It never goes faster than the fade above.</string>
     <string name="transition_instant">Instant</string>
     <string name="transition_30s">30 seconds</string>
     <string name="transition_1m">1 minute</string>
@@ -172,6 +172,13 @@
     <string name="transition_custom">Custom</string>
     <string name="transition_custom_value">%1$d min</string>
     <string name="transition_custom_name">Custom transition duration</string>
+    <string name="transition_same_as_fade">Same as the fade</string>
+    <string name="fade_duration_title">Fade when switching</string>
+    <string name="fade_duration_subtitle">Turning the filter on or off and picking a preset fade over this time. Sliders stay instant.</string>
+    <string name="fade_half_second">0.5 s</string>
+    <string name="fade_1s">1 s</string>
+    <string name="fade_2s">2 s</string>
+    <string name="fade_3s">3 s</string>
 
     <string name="driver_title">Display driver</string>
     <string name="driver_auto">Auto (best available)</string>

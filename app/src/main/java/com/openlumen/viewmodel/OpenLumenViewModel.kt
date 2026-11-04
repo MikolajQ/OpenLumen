@@ -393,6 +393,13 @@ class OpenLumenViewModel @Inject constructor(
         }
     }
 
+    /** Fade for switching on and off and picking a preset; 0 is instant. */
+    override fun setFadeDuration(durationMs: Long) = viewModelScope.launch {
+        prefs.update {
+            it.copy(fadeDurationMs = durationMs.coerceIn(0L, Preferences.FADE_MAX_MS))
+        }
+    }
+
     override fun setAutomationEnabled(enabled: Boolean) = viewModelScope.launch {
         prefs.setAutomationEnabled(enabled)
     }

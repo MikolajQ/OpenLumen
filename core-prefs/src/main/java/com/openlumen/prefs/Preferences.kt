@@ -211,6 +211,15 @@ data class Preferences(
      */
     val transitionDurationMs: Long = 0L,
     /**
+     * Fade for every change of state that is not a slider: turning the filter
+     * on or off, picking a preset, and a schedule change shorter than
+     * [transitionDurationMs], which only ever lengthens a schedule change.
+     * 0 means instant. Clamped to `0..FADE_MAX_MS`. Kept out of
+     * [ProfileSnapshot] like the other behaviour settings that are not part
+     * of a look.
+     */
+    val fadeDurationMs: Long = DEFAULT_FADE_MS,
+    /**
      * AMOLED true-black clamp (roadmap **C66**). Opt-in. When set, the
      * engine respects `LumenMatrix.amoledClamp` and snaps any channel
      * scalar below the panel-noise threshold to true zero. Effective on
@@ -325,6 +334,12 @@ data class Preferences(
          * interpolation loop.
          */
         const val TRANSITION_MAX_MS: Long = 30L * 60 * 1000
+
+        /** One second: long enough to read as a fade, short enough not to wait for. */
+        const val DEFAULT_FADE_MS: Long = 1_000L
+
+        /** A fade is for switching; anything longer is a schedule transition. */
+        const val FADE_MAX_MS: Long = 5_000L
 
         /** Contrast slider bounds (C64). 0.5 = compressed, 2.0 = expanded. */
         const val CONTRAST_MIN: Float = 0.5f

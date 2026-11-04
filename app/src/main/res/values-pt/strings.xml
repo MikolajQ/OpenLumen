@@ -104,7 +104,7 @@
     <string name="value_unset">não definido</string>
     <string name="value_enabled">ativado</string>
     <string name="value_disabled">desativado</string>
-    <string name="duration_instant">instantaneo</string>
+    <string name="duration_instant">instantâneo</string>
     <string name="duration_seconds_short">%1$ds</string>
     <string name="duration_minutes_short">%1$dm</string>
 
@@ -135,9 +135,9 @@
     <string name="schedule_sunrise_offset">Desvio do nascer do sol: %1$d min</string>
     <string name="schedule_sunset_offset_name">Deslocamento do pôr do sol</string>
     <string name="schedule_sunrise_offset_name">Deslocamento do nascer do sol</string>
-    <string name="transition_duration_title">Duração da transição</string>
-    <string name="transition_duration_subtitle">Velocidade com que o filtro aparece ou desaparece nos limites do agendamento. Alteracoes manuais (controles deslizantes, toques em predefinidos) permanecem instantaneas.</string>
-    <string name="transition_instant">Instantaneo</string>
+    <string name="transition_duration_title">Transição do agendamento</string>
+    <string name="transition_duration_subtitle">Com que lentidão o filtro muda no pôr do sol, no nascer do sol e nos limites do horário. Nunca é mais rápida que o esmaecimento acima.</string>
+    <string name="transition_instant">Instantâneo</string>
     <string name="transition_30s">30 segundos</string>
     <string name="transition_1m">1 minuto</string>
     <string name="transition_3m">3 minutos</string>
@@ -147,6 +147,13 @@
     <string name="transition_custom">Personalizado</string>
     <string name="transition_custom_value">%1$d min</string>
     <string name="transition_custom_name">Duração de transição personalizada</string>
+    <string name="transition_same_as_fade">Igual ao esmaecimento</string>
+    <string name="fade_duration_title">Esmaecimento ao alternar</string>
+    <string name="fade_duration_subtitle">Ligar ou desligar o filtro e escolher um predefinido acontecem com esmaecimento durante este tempo. Os controles deslizantes continuam instantâneos.</string>
+    <string name="fade_half_second">0,5 s</string>
+    <string name="fade_1s">1 s</string>
+    <string name="fade_2s">2 s</string>
+    <string name="fade_3s">3 s</string>
 
     <string name="driver_title">Driver de exibicao</string>
     <string name="driver_auto">Automático (melhor disponível)</string>

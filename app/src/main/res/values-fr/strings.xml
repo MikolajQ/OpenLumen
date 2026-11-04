@@ -135,8 +135,8 @@
     <string name="schedule_sunrise_offset">Décalage du lever : %1$d min</string>
     <string name="schedule_sunset_offset_name">Décalage du coucher du soleil</string>
     <string name="schedule_sunrise_offset_name">Décalage du lever du soleil</string>
-    <string name="transition_duration_title">Durée de transition</string>
-    <string name="transition_duration_subtitle">Vitesse d\'apparition ou de disparition du filtre aux limites de la programmation. Les modifications manuelles (curseurs, préréglages) restent instantanées.</string>
+    <string name="transition_duration_title">Transition de la programmation</string>
+    <string name="transition_duration_subtitle">Lenteur du changement au coucher et au lever du soleil et aux limites de la plage horaire. Jamais plus rapide que le fondu ci-dessus.</string>
     <string name="transition_instant">Instantané</string>
     <string name="transition_30s">30 secondes</string>
     <string name="transition_1m">1 minute</string>
@@ -147,6 +147,13 @@
     <string name="transition_custom">Personnalisé</string>
     <string name="transition_custom_value">%1$d min</string>
     <string name="transition_custom_name">Durée de transition personnalisée</string>
+    <string name="transition_same_as_fade">Comme le fondu</string>
+    <string name="fade_duration_title">Fondu lors des changements</string>
+    <string name="fade_duration_subtitle">Activer ou désactiver le filtre et choisir un préréglage se font en fondu sur cette durée. Les curseurs restent instantanés.</string>
+    <string name="fade_half_second">0,5 s</string>
+    <string name="fade_1s">1 s</string>
+    <string name="fade_2s">2 s</string>
+    <string name="fade_3s">3 s</string>
 
     <string name="driver_title">Pilote d\'affichage</string>
     <string name="driver_auto">Auto (meilleur disponible)</string>
