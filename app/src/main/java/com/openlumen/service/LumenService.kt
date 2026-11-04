@@ -47,6 +47,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 
@@ -95,6 +96,15 @@ class LumenService : LifecycleService() {
 
     /** Whether the first emission has read the off/on state left by the last run. */
     @Volatile private var startupOutputChecked = false
+
+    /**
+     * Turn-on and toggle commands whose preference write has not landed yet.
+     * A stopped service started by one of them sees the stored `enabled =
+     * false` first, and stopping on it lost the command: the write landed on
+     * a service already on its way out, and the filter stayed off while the
+     * switch said on.
+     */
+    private val pendingEnableWrites = AtomicInteger(0)
     private val ambientLightGate = AmbientLightGate()
     private val directBootMirror: DirectBootMirror by lazy {
         DirectBootMirror(directBootState, tag)
@@ -262,12 +272,8 @@ class LumenService : LifecycleService() {
             ACTION_TURN_OFF -> lifecycleScope.launch {
                 turnOffImmediately("intent", blunt = isEmergencyTurnOff(intent))
             }
-            ACTION_TURN_ON -> lifecycleScope.launch {
-                if (isUserUnlocked()) prefs.update { it.withFilterEnabled(true) }
-            }
-            ACTION_TOGGLE -> lifecycleScope.launch {
-                if (isUserUnlocked()) prefs.update { it.toggledFilterEnabled() }
-            }
+            ACTION_TURN_ON -> writeEnabled { it.withFilterEnabled(true) }
+            ACTION_TOGGLE -> writeEnabled { it.toggledFilterEnabled() }
             ACTION_REEVALUATE -> lifecycleScope.launch {
                 if (isUserUnlocked()) latestPrefs.get()?.let { p ->
                     val active = applyIfShouldBeActive(p)
@@ -616,11 +622,25 @@ class LumenService : LifecycleService() {
         }.onFailure { Log.w(tag, "filter state broadcast failed: ${it.message}") }
     }
 
+    /** Counted synchronously, before the write is even launched; see [pendingEnableWrites]. */
+    private fun writeEnabled(transform: (Preferences) -> Preferences) {
+        pendingEnableWrites.incrementAndGet()
+        lifecycleScope.launch {
+            try {
+                if (isUserUnlocked()) prefs.update(transform)
+            } finally {
+                pendingEnableWrites.decrementAndGet()
+            }
+        }
+    }
+
     /**
      * [fadeMs] 0 is the direct-boot path too, where the credential-protected
      * preferences the re-check below reads are not available yet.
      */
     private suspend fun clearAndStop(fadeMs: Long = 0L) {
+        // The emission that follows the pending write decides instead.
+        if (pendingEnableWrites.get() > 0) return
         if (fadeMs > 0L) {
             engineController.fadeToIdentity(fadeMs)
             // Turned back on while it faded: the queued emission takes it
