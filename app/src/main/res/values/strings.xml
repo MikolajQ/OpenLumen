@@ -30,8 +30,14 @@
     <string name="home_kelvin_value">%1$d K</string>
     <string name="home_kelvin_state">%1$d Kelvin</string>
     <string name="home_kelvin_hint">Warmer (lower K) deepens reds; cooler (higher K) lifts blues. 6500 K is neutral white.</string>
-    <string name="home_kelvin_preset_hint">Available for Custom RGB; select Custom to edit this temperature</string>
+    <string name="home_preset_value_hint">Set by the %1$s preset. Use Edit as custom above to change it.</string>
+    <string name="home_luma_title">Keep brightness contrast</string>
+    <string name="home_luma_hint" formatted="false">At 0%, each color channel is scaled on its own: colors stay, but with a strong tint, shapes that differ only in green or blue can merge, such as a white symbol on a red icon. Higher values build the tint from each pixel\'s brightness instead, so light and dark stay apart while colors fade. 100% is a single-color screen.</string>
+    <string name="home_luma_approximated">The active driver cannot mix color channels, so it applies only the tint.</string>
     <string name="home_preview">Preview</string>
+    <string name="home_custom_preset_shown">Showing the %1$s preset. Edit as custom copies its color here, in place of your own.</string>
+    <string name="home_edit_as_custom">Edit as custom</string>
+    <string name="home_use_my_color">Use my color</string>
     <string name="home_gamma_title">Per-channel gamma</string>
     <string name="home_gamma_hint">1.0 = neutral. Higher lifts mid-tones; lower deepens them.</string>
     <string name="home_gamma_value">%1$.2f</string>
@@ -72,6 +78,8 @@
     <string name="preset_restore_previous">Restore</string>
     <string name="preset_detail_active">Active</string>
     <string name="preset_detail_dim">Dim: %1$d%%</string>
+    <string name="preset_luma_share">Keeps brightness contrast: %1$d%%</string>
+    <string name="preset_luma_share_short">%1$d%% brightness contrast</string>
     <string name="preset_detail_cvd">Color vision adjustment</string>
     <string name="preset_detail_approximated">This driver cannot reproduce %1$s, so the preset is approximated. Pin a different driver on the Driver tab for the full effect.</string>
     <string name="preset_capability_color_matrix">colour mixing between channels</string>

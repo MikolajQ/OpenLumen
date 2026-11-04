@@ -21,6 +21,8 @@ import com.openlumen.prefs.PresetSortOrder
 import com.openlumen.prefs.ScheduleDto
 import com.openlumen.prefs.ScheduleModeDto
 import com.openlumen.prefs.touchPreset
+import com.openlumen.prefs.withActivePresetAsCustom
+import com.openlumen.prefs.withCustomLumaShare
 import com.openlumen.prefs.withFilterEnabled
 import com.openlumen.schedule.LightSensorAdapter
 import com.openlumen.schedule.isValidSolarLocation
@@ -297,6 +299,24 @@ class OpenLumenViewModel @Inject constructor(
             it.copy(
                 activePresetKey = "custom",
                 customMatrix = it.customMatrix.copy(r = rgb.r, g = rgb.g, b = rgb.b)
+            )
+        }
+    }
+
+    override fun setCustomLumaShare(share: Float) = viewModelScope.launch {
+        prefs.update { it.withCustomLumaShare(share) }
+    }
+
+    override fun editPresetAsCustom() = viewModelScope.launch {
+        prefs.update { it.withActivePresetAsCustom() }
+    }
+
+    override fun useCustomColor() = viewModelScope.launch {
+        prefs.update {
+            com.openlumen.prefs.PresetCycle.setActiveKey(
+                it,
+                com.openlumen.prefs.Preferences.CUSTOM_PRESET_KEY,
+                PresetKeyResolver::isKnown
             )
         }
     }

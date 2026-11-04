@@ -82,6 +82,7 @@ import com.openlumen.viewmodel.OpenLumenScreenModel
 import com.openlumen.viewmodel.OpenLumenViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -356,14 +357,29 @@ private fun PresetListPane(
                             )
                     )
                     Spacer(Modifier.size(12.dp))
-                    Text(
-                        text = entryLabel,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = entryLabel,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        // The swatch is the tint alone, so Red and Ruby look
+                        // the same here; this line is what tells them apart.
+                        val lumaPct = entry.lumaSharePercent()
+                        if (lumaPct > 0) {
+                            // Number first and two lines: the row leaves
+                            // little room, and the number is the point.
+                            Text(
+                                text = stringResource(R.string.preset_luma_share_short, lumaPct),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                     LumenTextButton(onClick = { onRenamePreset(entry.key) }) {
                         Text(
                             stringResource(R.string.preset_rename_action),
@@ -551,26 +567,51 @@ private fun PresetDetailPane(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     val channels = lumenChannelColors()
+                    // The tint, as Home shows it, where the preset has one:
+                    // the same numbers on both screens. Only Grayscale
+                    // differs from its scalar triplet, a darkening kept for
+                    // drivers that cannot mix channels.
+                    val tint = entry.tint
                     // The visible label is a single letter. The name a screen
                     // reader needs is the full one, and those strings already
                     // existed for the Home sliders.
                     ChannelRow(
                         stringResource(R.string.channel_red_short),
                         stringResource(R.string.home_rgb_red_name),
-                        m.r,
+                        tint?.r ?: m.r,
                         channels.red
                     )
                     ChannelRow(
                         stringResource(R.string.channel_green_short),
                         stringResource(R.string.home_rgb_green_name),
-                        m.g,
+                        tint?.g ?: m.g,
                         channels.green
                     )
                     ChannelRow(
                         stringResource(R.string.channel_blue_short),
                         stringResource(R.string.home_rgb_blue_name),
-                        m.b,
+                        tint?.b ?: m.b,
                         channels.blue
+                    )
+                }
+            }
+        }
+
+        val lumaPct = entry.lumaSharePercent()
+        if (lumaPct > 0) {
+            item {
+                Card(
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Text(
+                        text = stringResource(R.string.preset_luma_share, lumaPct),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
                     )
                 }
             }
@@ -842,6 +883,10 @@ private fun PresetDetailEmpty() {
         }
     }
 }
+
+/** The preset's luma share in whole percent; 0 for none or no tint. */
+private fun Presets.Entry.lumaSharePercent(): Int =
+    ((tint?.lumaShare ?: 0f).coerceIn(0f, 1f) * 100f).roundToInt()
 
 private fun swatchOf(r: Float, g: Float, b: Float): Color =
     Color(red = r.coerceIn(0f, 1f), green = g.coerceIn(0f, 1f), blue = b.coerceIn(0f, 1f), alpha = 1f)

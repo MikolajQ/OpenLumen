@@ -29,8 +29,14 @@
     <string name="home_kelvin_value">%1$d K</string>
     <string name="home_kelvin_state">%1$d Kelvin</string>
     <string name="home_kelvin_hint">Wärmer (niedrigere K) verstärkt Rottöne; kühler (höhere K) hebt Blautöne an. 6500 K ist neutrales Weiß.</string>
-    <string name="home_kelvin_preset_hint">Für benutzerdefiniertes RGB verfügbar; zum Bearbeiten „Benutzerdefiniert“ auswählen</string>
+    <string name="home_preset_value_hint">Von der Voreinstellung %1$s festgelegt. Zum Ändern oben „Als benutzerdefiniert bearbeiten“ verwenden.</string>
+    <string name="home_luma_title">Helligkeitskontrast erhalten</string>
+    <string name="home_luma_hint" formatted="false">Bei 0% wird jeder Farbkanal einzeln skaliert: Die Farben bleiben, aber bei starker Tönung können Formen verschmelzen, die sich nur in Grün oder Blau unterscheiden, etwa ein weißes Symbol auf einem roten Icon. Höhere Werte bilden die Tönung stattdessen aus der Helligkeit jedes Pixels, sodass Hell und Dunkel unterscheidbar bleiben, während die Farben verblassen. 100% ergibt einen einfarbigen Bildschirm.</string>
+    <string name="home_luma_approximated">Der aktive Treiber kann Farbkanäle nicht mischen und wendet nur die Tönung an.</string>
     <string name="home_preview">Vorschau</string>
+    <string name="home_custom_preset_shown">Zeigt die Voreinstellung %1$s. „Als benutzerdefiniert bearbeiten“ übernimmt ihre Farbe hierher und ersetzt Ihre eigene.</string>
+    <string name="home_edit_as_custom">Als benutzerdefiniert bearbeiten</string>
+    <string name="home_use_my_color">Meine Farbe verwenden</string>
     <string name="home_gamma_title">Gamma pro Kanal</string>
     <string name="home_gamma_hint">1,0 = neutral. Höhere Werte heben Mitteltöne an; niedrigere vertiefen sie.</string>
     <string name="home_gamma_value">%1$.2f</string>
@@ -71,6 +77,8 @@
     <string name="preset_restore_previous">Wiederherstellen</string>
     <string name="preset_detail_active">Aktiv</string>
     <string name="preset_detail_dim">Abdunklung: %1$d%%</string>
+    <string name="preset_luma_share">Helligkeitskontrast erhalten: %1$d%%</string>
+    <string name="preset_luma_share_short">%1$d%% Helligkeitskontrast</string>
     <string name="preset_detail_cvd">Farbsehkorrektur</string>
     <string name="preset_detail_approximated">Dieser Treiber kann %1$s nicht umsetzen, daher wird die Voreinstellung angenähert. Für die volle Wirkung im Tab „Treiber“ einen anderen Treiber wählen.</string>
     <string name="preset_capability_color_matrix">Farbmischung zwischen Kanälen</string>

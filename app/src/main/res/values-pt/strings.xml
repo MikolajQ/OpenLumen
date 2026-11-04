@@ -29,8 +29,14 @@
     <string name="home_kelvin_value">%1$d K</string>
     <string name="home_kelvin_state">%1$d Kelvin</string>
     <string name="home_kelvin_hint">Mais quente (K menor) intensifica os vermelhos; mais frio (K maior) realca os azuis. 6500 K e branco neutro.</string>
-    <string name="home_kelvin_preset_hint">Disponível para RGB personalizado; selecione Personalizado para editar esta temperatura</string>
+    <string name="home_preset_value_hint">Definido pela predefinição %1$s. Para mudar, use Editar como personalizado acima.</string>
+    <string name="home_luma_title">Manter o contraste de brilho</string>
+    <string name="home_luma_hint" formatted="false">Em 0%, cada canal de cor é ajustado separadamente: as cores permanecem, mas com um tom forte, formas que diferem só no verde ou no azul podem se fundir, como um símbolo branco em um ícone vermelho. Valores mais altos constroem o tom a partir do brilho de cada pixel, então claro e escuro continuam separados enquanto as cores desbotam. 100% é uma tela de uma só cor.</string>
+    <string name="home_luma_approximated">O driver ativo não consegue misturar canais de cor, então aplica só o tom.</string>
     <string name="home_preview">Visualizar</string>
+    <string name="home_custom_preset_shown">Mostrando a predefinição %1$s. Editar como personalizado traz a cor dela para cá no lugar da sua.</string>
+    <string name="home_edit_as_custom">Editar como personalizado</string>
+    <string name="home_use_my_color">Usar minha cor</string>
     <string name="home_gamma_title">Gama por canal</string>
     <string name="home_gamma_hint">1.0 = neutro. Valores maiores clareiam tons médios; menores escurecem.</string>
     <string name="home_gamma_value">%1$.2f</string>
@@ -71,6 +77,8 @@
     <string name="preset_restore_previous">Restaurar</string>
     <string name="preset_detail_active">Ativo</string>
     <string name="preset_detail_dim">Escurecimento: %1$d%%</string>
+    <string name="preset_luma_share">Mantém o contraste de brilho: %1$d%%</string>
+    <string name="preset_luma_share_short">%1$d%% de contraste de brilho</string>
     <string name="preset_detail_cvd">Ajuste de visão de cores</string>
     <string name="preset_detail_approximated">Este controlador não consegue reproduzir %1$s, por isso a predefinição é aproximada. Escolha outro controlador no separador Controlador para obter o efeito completo.</string>
     <string name="preset_capability_color_matrix">a mistura de cor entre canais</string>

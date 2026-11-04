@@ -15,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -61,11 +62,16 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.openlumen.diagnostics.DiagnosticsLog
 import com.openlumen.R
 import com.openlumen.diagnostics.MatrixPreview
+import com.openlumen.engine.DriverProbe
+import com.openlumen.engine.EngineCapability
 import com.openlumen.engine.Kelvin
 import com.openlumen.engine.Presets
+import com.openlumen.engine.unsupportedBy
 import com.openlumen.prefs.EngineKindDto
+import com.openlumen.prefs.effectiveMatrix
 import com.openlumen.presetLabel
 import com.openlumen.ui.components.PreferencesPlaceholder
+import com.openlumen.ui.components.LumenButton
 import com.openlumen.ui.components.LumenOutlinedButton
 import com.openlumen.ui.components.LumenSwitch
 import com.openlumen.ui.components.ExactAlarmPrompt
@@ -233,16 +239,23 @@ fun HomeScreen(
     var gammaR by rememberSaveable { mutableFloatStateOf(prefs.customMatrix.gammaR) }
     var gammaG by rememberSaveable { mutableFloatStateOf(prefs.customMatrix.gammaG) }
     var gammaB by rememberSaveable { mutableFloatStateOf(prefs.customMatrix.gammaB) }
+    var lumaShare by rememberSaveable { mutableFloatStateOf(prefs.customMatrix.lumaShare) }
     var kelvinSliderK by rememberSaveable { mutableIntStateOf(Kelvin.DEFAULT_K) }
-    val kelvinEditable = prefs.activePresetKey == "custom"
-    val kelvinSource = Presets.byKey(prefs.activePresetKey)?.matrix
+    // The colour controls (RGB, temperature, brightness contrast) show the
+    // active preset's tint, read-only, so two presets that look different
+    // also read differently: Red and Ruby share almost the same RGB and
+    // differ in how much of the tint brightness carries. Custom, Off and the
+    // colour-vision presets have no tint to show, so the controls hold the
+    // custom colour there, and moving one selects it, as before.
+    val presetTint = preset?.tint
+    val colorEditable = presetTint == null
     LaunchedEffect(
         prefs.activePresetKey,
         prefs.customMatrix.r,
         prefs.customMatrix.g,
         prefs.customMatrix.b
     ) {
-        kelvinSliderK = kelvinSource?.let {
+        kelvinSliderK = presetTint?.let {
             Kelvin.fromRgb(it.r, it.g, it.b)
         } ?: Kelvin.fromRgb(
             prefs.customMatrix.r,
@@ -250,6 +263,12 @@ fun HomeScreen(
             prefs.customMatrix.b
         )
     }
+    val probes by vm.probes.collectAsStateWithLifecycle()
+    val driverCapabilities = DriverProbe.activeCapabilities(
+        probes = probes,
+        pinned = prefs.engine.toEngineKind(),
+        forcePinned = prefs.forcePinnedEngine
+    )
 
     LaunchedEffect(prefs.presetIntensity) { intensityDraft = prefs.presetIntensity }
     LaunchedEffect(prefs.dim) { dimDraft = prefs.dim }
@@ -257,6 +276,7 @@ fun HomeScreen(
     LaunchedEffect(prefs.customMatrix.r) { customR = prefs.customMatrix.r }
     LaunchedEffect(prefs.customMatrix.g) { customG = prefs.customMatrix.g }
     LaunchedEffect(prefs.customMatrix.b) { customB = prefs.customMatrix.b }
+    LaunchedEffect(prefs.customMatrix.lumaShare) { lumaShare = prefs.customMatrix.lumaShare }
     LaunchedEffect(prefs.customMatrix.gammaR) { gammaR = prefs.customMatrix.gammaR }
     LaunchedEffect(prefs.customMatrix.gammaG) { gammaG = prefs.customMatrix.gammaG }
     LaunchedEffect(prefs.customMatrix.gammaB) { gammaB = prefs.customMatrix.gammaB }
@@ -289,7 +309,6 @@ fun HomeScreen(
         // Only while the filter is on: with it off, the system's Night Light
         // is not overwriting anything and is what the user asked for.
         if (prefs.enabled) {
-            val probes by vm.probes.collectAsStateWithLifecycle()
             SystemColorConflictCard(
                 engine = expectedEngineKind(prefs.engine, prefs.forcePinnedEngine, probes)
             )
@@ -555,33 +574,48 @@ fun HomeScreen(
             }
         }
 
-        // Custom RGB picker — three slider rows in fixed R/G/B order.
+        // Custom RGB picker — three slider rows in fixed R/G/B order. With a
+        // preset active it shows the preset's tint, read-only, and offers to
+        // copy it here or to switch back to the colour saved here.
         val channels = lumenChannelColors()
+        val shownR = presetTint?.r ?: customR
+        val shownG = presetTint?.g ?: customG
+        val shownB = presetTint?.b ?: customB
         Card(shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Text(stringResource(R.string.presets_custom), style = MaterialTheme.typography.titleMedium)
+                if (presetTint != null) {
+                    Text(
+                        stringResource(R.string.home_custom_preset_shown, activePresetLabel),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
                 RgbSlider(
                     label = stringResource(R.string.channel_red_short),
                     accessibleName = stringResource(R.string.home_rgb_red_name),
-                    value = customR,
+                    value = shownR,
                     track = channels.red,
+                    enabled = colorEditable,
                     onChange = { customR = it },
                     onChangeFinished = { vm.setCustomRgb(customR, customG, customB) }
                 )
                 RgbSlider(
                     label = stringResource(R.string.channel_green_short),
                     accessibleName = stringResource(R.string.home_rgb_green_name),
-                    value = customG,
+                    value = shownG,
                     track = channels.green,
+                    enabled = colorEditable,
                     onChange = { customG = it },
                     onChangeFinished = { vm.setCustomRgb(customR, customG, customB) }
                 )
                 RgbSlider(
                     label = stringResource(R.string.channel_blue_short),
                     accessibleName = stringResource(R.string.home_rgb_blue_name),
-                    value = customB,
+                    value = shownB,
                     track = channels.blue,
+                    enabled = colorEditable,
                     onChange = { customB = it },
                     onChangeFinished = { vm.setCustomRgb(customR, customG, customB) }
                 )
@@ -591,20 +625,36 @@ fun HomeScreen(
                     Text(stringResource(R.string.home_preview), style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.size(8.dp))
                     val previewLabel = stringResource(R.string.home_preview)
-                    Box(
+                    ColorSwatch(
+                        r = shownR,
+                        g = shownG,
+                        b = shownB,
                         modifier = Modifier
                             .size(28.dp)
                             .semantics { contentDescription = previewLabel }
-                            .background(
-                                color = Color(
-                                    red = customR.coerceIn(0f, 1f),
-                                    green = customG.coerceIn(0f, 1f),
-                                    blue = customB.coerceIn(0f, 1f),
-                                    alpha = 1f
-                                ),
-                                shape = RoundedCornerShape(6.dp)
-                            )
                     )
+                }
+
+                if (presetTint != null) {
+                    Spacer(Modifier.height(12.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LumenButton(onClick = { vm.editPresetAsCustom() }) {
+                            Text(stringResource(R.string.home_edit_as_custom))
+                        }
+                        LumenOutlinedButton(onClick = { vm.useCustomColor() }) {
+                            ColorSwatch(
+                                r = customR,
+                                g = customG,
+                                b = customB,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.size(8.dp))
+                            Text(stringResource(R.string.home_use_my_color))
+                        }
+                    }
                 }
             }
         }
@@ -629,7 +679,7 @@ fun HomeScreen(
                     },
                     onValueChangeFinished = { vm.setCustomKelvin(kelvinSliderK) },
                     valueRange = Kelvin.MIN_K.toFloat()..Kelvin.MAX_K.toFloat(),
-                    enabled = kelvinEditable,
+                    enabled = colorEditable,
                     modifier = Modifier.labeledSliderSemantics(
                         name = stringResource(R.string.home_kelvin_title),
                         valueDescription = kelvinState
@@ -637,16 +687,71 @@ fun HomeScreen(
                     colors = lumenSliderColors()
                 )
                 Text(
-                    stringResource(
-                        if (kelvinEditable) {
-                            R.string.home_kelvin_hint
-                        } else {
-                            R.string.home_kelvin_preset_hint
-                        }
-                    ),
+                    if (colorEditable) {
+                        stringResource(R.string.home_kelvin_hint)
+                    } else {
+                        stringResource(R.string.home_preset_value_hint, activePresetLabel)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+
+        // Keep brightness contrast: how much of the tint each pixel's
+        // brightness carries (see Tint). Steps of 5%, so 0, 50 and 100, where
+        // Red, Honey and Ruby sit, can be hit exactly.
+        Card(shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                val shownShare = presetTint?.lumaShare ?: lumaShare
+                val sharePct = (shownShare * 100f).roundToInt()
+                val shareState = stringResource(R.string.home_percent_state, sharePct)
+                Text(stringResource(R.string.home_luma_title), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(R.string.home_percent_value, sharePct),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Slider(
+                    value = shownShare,
+                    onValueChange = { lumaShare = it.coerceIn(0f, 1f) },
+                    onValueChangeFinished = { vm.setCustomLumaShare(lumaShare) },
+                    valueRange = 0f..1f,
+                    steps = LUMA_SHARE_STEPS,
+                    enabled = colorEditable,
+                    modifier = Modifier.labeledSliderSemantics(
+                        name = stringResource(R.string.home_luma_title),
+                        valueDescription = shareState
+                    ),
+                    colors = lumenSliderColors()
+                )
+                Text(
+                    stringResource(R.string.home_luma_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (presetTint != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        stringResource(R.string.home_preset_value_hint, activePresetLabel),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                // What is on screen, not the slider: at zero intensity even
+                // Ruby is a plain scale, and Grayscale on the secure-settings
+                // driver is the system's own mode, which that driver can do.
+                val approximated = shownShare > 0f && driverCapabilities?.let {
+                    EngineCapability.COLOR_MATRIX in prefs.effectiveMatrix().unsupportedBy(it)
+                } == true
+                if (approximated) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        stringResource(R.string.home_luma_approximated),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
             }
         }
 
@@ -743,7 +848,8 @@ private fun RgbSlider(
     value: Float,
     track: Color,
     onChange: (Float) -> Unit,
-    onChangeFinished: () -> Unit
+    onChangeFinished: () -> Unit,
+    enabled: Boolean = true
 ) {
     val percent = (value * 100).toInt()
     val rgbState = stringResource(R.string.home_rgb_state, label, percent)
@@ -760,6 +866,7 @@ private fun RgbSlider(
             onValueChange = onChange,
             onValueChangeFinished = onChangeFinished,
             valueRange = 0f..1f,
+            enabled = enabled,
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 8.dp)
@@ -778,3 +885,21 @@ private fun RgbSlider(
         )
     }
 }
+
+@Composable
+private fun ColorSwatch(r: Float, g: Float, b: Float, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.background(
+            color = Color(
+                red = r.coerceIn(0f, 1f),
+                green = g.coerceIn(0f, 1f),
+                blue = b.coerceIn(0f, 1f),
+                alpha = 1f
+            ),
+            shape = RoundedCornerShape(6.dp)
+        )
+    )
+}
+
+/** 0..100% in steps of 5%: 19 stops between the ends. */
+private const val LUMA_SHARE_STEPS = 19

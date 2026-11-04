@@ -29,8 +29,14 @@
     <string name="home_kelvin_value">%1$d K</string>
     <string name="home_kelvin_state">%1$d Kelvin</string>
     <string name="home_kelvin_hint">Más cálido (K más bajo) intensifica los rojos; más frío (K más alto) realza los azules. 6500 K es blanco neutro.</string>
-    <string name="home_kelvin_preset_hint">Disponible para RGB personalizado; selecciona Personalizado para editar esta temperatura</string>
+    <string name="home_preset_value_hint">Lo fija el ajuste %1$s. Para cambiarlo, usa Editar como personalizado arriba.</string>
+    <string name="home_luma_title">Conservar el contraste de brillo</string>
+    <string name="home_luma_hint" formatted="false">Al 0%, cada canal de color se escala por separado: los colores se mantienen, pero con un tinte intenso pueden fundirse formas que solo difieren en verde o azul, como un símbolo blanco sobre un icono rojo. Los valores más altos construyen el tinte a partir del brillo de cada píxel, así que claro y oscuro siguen separados mientras los colores se apagan. 100% es una pantalla de un solo color.</string>
+    <string name="home_luma_approximated">El controlador activo no puede mezclar canales de color, así que solo aplica el tinte.</string>
     <string name="home_preview">Vista previa</string>
+    <string name="home_custom_preset_shown">Se muestra el ajuste %1$s. Editar como personalizado copia aquí su color en lugar del tuyo.</string>
+    <string name="home_edit_as_custom">Editar como personalizado</string>
+    <string name="home_use_my_color">Usar mi color</string>
     <string name="home_gamma_title">Gamma por canal</string>
     <string name="home_gamma_hint">1.0 = neutro. Valores más altos elevan los tonos medios; más bajos los profundizan.</string>
     <string name="home_gamma_value">%1$.2f</string>
@@ -71,6 +77,8 @@
     <string name="preset_restore_previous">Restaurar</string>
     <string name="preset_detail_active">Activo</string>
     <string name="preset_detail_dim">Atenuación: %1$d%%</string>
+    <string name="preset_luma_share">Conserva el contraste de brillo: %1$d%%</string>
+    <string name="preset_luma_share_short">%1$d%% de contraste de brillo</string>
     <string name="preset_detail_cvd">Ajuste de daltonismo</string>
     <string name="preset_detail_approximated">Este controlador no puede reproducir %1$s, así que el ajuste se aproxima. Fija otro controlador en la pestaña Controlador para obtener el efecto completo.</string>
     <string name="preset_capability_color_matrix">la mezcla de color entre canales</string>
