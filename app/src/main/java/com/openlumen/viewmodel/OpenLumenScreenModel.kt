@@ -73,6 +73,12 @@ interface OpenLumenScreenModel {
     fun setContrast(value: Float): Job
     fun setCustomRgb(r: Float, g: Float, b: Float): Job
     fun setCustomKelvin(kelvin: Int): Job
+    /** "Keep brightness contrast": the share of the custom tint carried by luma, 0..1. */
+    fun setCustomLumaShare(share: Float): Job = Job()
+    /** Copy the active preset's colour into Custom RGB and select it. */
+    fun editPresetAsCustom(): Job = Job()
+    /** Select Custom RGB with the colour it already holds. */
+    fun useCustomColor(): Job = Job()
     fun setGamma(r: Float, g: Float, b: Float): Job
     fun setScheduleOffsets(sunsetMin: Int, sunriseMin: Int): Job
     fun setProgressiveIntensity(

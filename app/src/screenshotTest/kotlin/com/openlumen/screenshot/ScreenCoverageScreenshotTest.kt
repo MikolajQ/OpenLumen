@@ -60,6 +60,40 @@ fun ProductionHomeDarkPhone() {
     ProductionScreenPreview(route = "home", darkTheme = true, model = PreviewScreenModel.home())
 }
 
+/**
+ * The colour controls below the fold. With a preset active they show its
+ * tint and brightness share, read-only, and offer to copy it: Ruby and Red
+ * used to read the same everywhere on this screen.
+ */
+@PreviewTest
+@Preview(name = "Production home preset colour controls", showBackground = true, widthDp = 393, heightDp = 2600)
+@Composable
+fun ProductionHomePresetColours() {
+    ProductionScreenPreview(
+        route = "home",
+        darkTheme = false,
+        model = PreviewScreenModel(
+            preferences = PreviewScreenModel.home().state.value.copy(activePresetKey = "ruby")
+        )
+    )
+}
+
+@PreviewTest
+@Preview(name = "Production home custom colour controls", showBackground = true, widthDp = 393, heightDp = 2600)
+@Composable
+fun ProductionHomeCustomColours() {
+    ProductionScreenPreview(
+        route = "home",
+        darkTheme = true,
+        model = PreviewScreenModel(
+            preferences = PreviewScreenModel.home().state.value.copy(
+                activePresetKey = "custom",
+                customMatrix = MatrixDto(r = 1f, g = 0.55f, b = 0.1f, lumaShare = 0.35f)
+            )
+        )
+    )
+}
+
 @PreviewTest
 @Preview(name = "Production home right to left", showBackground = true, widthDp = 393, heightDp = 852)
 @Composable
