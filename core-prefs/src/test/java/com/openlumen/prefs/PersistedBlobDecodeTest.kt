@@ -56,6 +56,17 @@ class PersistedBlobDecodeTest {
         assertThat(loaded.activePresetKey).isEqualTo("amber")
     }
 
+    @Test fun `a custom luma share is read back and kept in range`() {
+        // Stored before the field existed: a plain channel scale, as it was.
+        seed("""{"schemaVersion":3,"customMatrix":{"r":1.0,"g":0.5,"b":0.2}}""")
+        assertThat(runBlocking { store.flow.first() }.customMatrix.lumaShare).isEqualTo(0f)
+    }
+
+    @Test fun `a custom luma share out of range is clamped on read`() {
+        seed("""{"schemaVersion":3,"customMatrix":{"r":1.0,"g":0.5,"b":0.2,"lumaShare":7.0}}""")
+        assertThat(runBlocking { store.flow.first() }.customMatrix.lumaShare).isEqualTo(1f)
+    }
+
     @Test fun `a blob that records the current version is not walked back through the steps`() {
         // Positive control for the case above: the steps have to fire on the
         // gap, not on every read, or a user who enables automation loses it on

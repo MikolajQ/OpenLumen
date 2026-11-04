@@ -63,6 +63,14 @@ data class MatrixDto(
     val r: Float = 1f,
     val g: Float = 1f,
     val b: Float = 1f,
+    /**
+     * How much of the custom tint is carried by each pixel's brightness, 0..1
+     * ("Keep brightness contrast"). 0 is the plain channel scale every build
+     * before it rendered, so a stored matrix decodes unchanged. Above 0 the
+     * custom colour is `Tint(r, g, b, lumaShare)` and the explicit matrix
+     * fields below are not used.
+     */
+    val lumaShare: Float = 0f,
     val biasR: Float = 0f,
     val biasG: Float = 0f,
     val biasB: Float = 0f,

@@ -414,6 +414,7 @@ class PreferencesStore(
         r = m.r.finiteIn(0f, 1f, default = 1f),
         g = m.g.finiteIn(0f, 1f, default = 0.78f),
         b = m.b.finiteIn(0f, 1f, default = 0.55f),
+        lumaShare = m.lumaShare.finiteIn(0f, 1f, default = 0f),
         biasR = m.biasR.finiteIn(-1f, 1f, default = 0f),
         biasG = m.biasG.finiteIn(-1f, 1f, default = 0f),
         biasB = m.biasB.finiteIn(-1f, 1f, default = 0f),

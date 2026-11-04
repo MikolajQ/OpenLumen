@@ -3,6 +3,7 @@ package com.openlumen.prefs
 import com.openlumen.engine.Kelvin
 import com.openlumen.engine.LumenMatrix
 import com.openlumen.engine.Presets
+import com.openlumen.engine.Tint
 import com.openlumen.engine.composeDim
 import com.openlumen.engine.withContrast
 
@@ -75,22 +76,29 @@ fun Preferences.dayMatrix(): LumenMatrix {
  * every field here would change what the screen renders for any profile whose
  * snapshot happens to carry one, which is a silent behaviour change rather
  * than a fix.
+ *
+ * A luma share above 0 builds the matrix from the tint, as the named presets
+ * Ruby and Honey are built. Explicit matrix fields can only arrive through an
+ * imported profile, since no control sets them, and they apply only at 0.
  */
-private fun MatrixDto.asCustomBase(): LumenMatrix = LumenMatrix(
-    r = r,
-    g = g,
-    b = b,
-    hasColorMatrix = hasColorMatrix,
-    matrixRr = matrixRr,
-    matrixRg = matrixRg,
-    matrixRb = matrixRb,
-    matrixGr = matrixGr,
-    matrixGg = matrixGg,
-    matrixGb = matrixGb,
-    matrixBr = matrixBr,
-    matrixBg = matrixBg,
-    matrixBb = matrixBb
-)
+private fun MatrixDto.asCustomBase(): LumenMatrix {
+    if (lumaShare > 0f) return Tint(r, g, b, lumaShare).toMatrix()
+    return LumenMatrix(
+        r = r,
+        g = g,
+        b = b,
+        hasColorMatrix = hasColorMatrix,
+        matrixRr = matrixRr,
+        matrixRg = matrixRg,
+        matrixRb = matrixRb,
+        matrixGr = matrixGr,
+        matrixGg = matrixGg,
+        matrixGb = matrixGb,
+        matrixBr = matrixBr,
+        matrixBg = matrixBg,
+        matrixBb = matrixBb
+    )
+}
 
 /**
  * The persisted form of a matrix, as a matrix.
