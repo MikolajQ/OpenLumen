@@ -9,6 +9,8 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -139,11 +141,41 @@ object Su {
 
     suspend fun runCommand(commandLine: String): SuResult =
         commandRunnerForTest?.invoke(commandLine)
+            ?: runInSession(commandLine)
             ?: runCommandInternal(commandLine, timeoutMs = CMD_TIMEOUT_MS)
+
+    /**
+     * Run [block] with one root shell kept open for every [runCommand] and
+     * [runShell] inside it, instead of a new `su` per call. Meant for a run of
+     * calls close together, such as the frames of a colour fade; see
+     * [SuSession]. The shell starts on the first call that needs it, so a
+     * block that never reaches `su` costs nothing, and it is closed when the
+     * block ends, however it ends. Nested calls share the outer session.
+     */
+    suspend fun <T> withSession(block: suspend () -> T): T {
+        if (currentCoroutineContext()[SuSession] != null) return block()
+        val session = SuSession()
+        try {
+            return withContext(session) { block() }
+        } finally {
+            withContext(NonCancellable + Dispatchers.IO) { session.close() }
+        }
+    }
+
+    private suspend fun runInSession(script: String): SuResult? {
+        val session = currentCoroutineContext()[SuSession] ?: return null
+        return withContext(Dispatchers.IO) {
+            val shell = session.shellOrNull() ?: return@withContext null
+            val result = shell.run(script, CMD_TIMEOUT_MS)
+            if (!shell.usable) session.markBroken()
+            result
+        }
+    }
 
     /** Pipe stdinText into su and return the exit code. */
     suspend fun runShell(stdinText: String): Int = withContext(Dispatchers.IO) {
         shellRunnerForTest?.let { return@withContext it.invoke(stdinText) }
+        runInSession(stdinText)?.let { return@withContext it.exitCode }
         val proc = try {
             ProcessBuilder("su").redirectErrorStream(true).start()
         } catch (e: IOException) {

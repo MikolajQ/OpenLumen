@@ -49,6 +49,19 @@ interface ColorEngine {
      * without prior apply().
      */
     suspend fun clear(context: Context): EngineResult
+
+    /**
+     * The shortest gap between two frames of a colour fade this driver should
+     * be asked for. The default suits a driver whose apply is one write to
+     * the compositor or the panel; one whose apply does more, or that
+     * animates on its own, raises it.
+     */
+    val minFadeFrameMs: Long get() = DEFAULT_MIN_FADE_FRAME_MS
+
+    companion object {
+        /** 20 frames a second: smooth for a colour change, at half the cost of 40. */
+        const val DEFAULT_MIN_FADE_FRAME_MS: Long = 50L
+    }
 }
 
 sealed interface EngineResult {

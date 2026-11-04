@@ -178,7 +178,10 @@ fun phaseMatrix(
 internal class FilterPhaseTracker {
     private val last = AtomicReference<FilterPhase?>(null)
 
-    fun changedTo(phase: FilterPhase): Boolean = last.getAndSet(phase) != phase
+    fun changedTo(phase: FilterPhase): Boolean = swap(phase) != phase
+
+    /** Records [phase] and returns the one before it, null on the first call. */
+    fun swap(phase: FilterPhase): FilterPhase? = last.getAndSet(phase)
 }
 
 /**

@@ -112,6 +112,10 @@ class LumenService : LifecycleService() {
      */
     @Volatile private var systemGrayscaleActive = false
     private val filterPhaseTracker = FilterPhaseTracker()
+    private val lastPresetKey = AtomicReference<String?>(null)
+
+    /** Whether the first emission has read the off/on state left by the last run. */
+    @Volatile private var startupOutputChecked = false
     private val ambientLightGate = AmbientLightGate()
     private val directBootMirror: DirectBootMirror by lazy {
         DirectBootMirror(directBootState, tag)
@@ -138,6 +142,7 @@ class LumenService : LifecycleService() {
                 Intent.ACTION_SCREEN_OFF -> {
                     lightSubscription.invalidate()
                     lifecycleScope.launch {
+                        engineController.finishTransitionNow()
                         latestPrefs.get()?.let { p ->
                             val active = applyIfShouldBeActive(p)
                             updateNotification(p, active, force = true)
@@ -148,7 +153,10 @@ class LumenService : LifecycleService() {
                     latestPrefs.get()?.let { p ->
                         lightSubscription.restart(p.enabled && p.lightSensorEnabled)
                         lifecycleScope.launch {
-                            val active = applyIfShouldBeActive(p)
+                            // A phase that changed while the screen was off is
+                            // caught up with the short fade: the slow schedule
+                            // transition would show the old colour for minutes.
+                            val active = applyIfShouldBeActive(p, catchingUp = true)
                             updateNotification(p, active, force = true)
                         }
                     }
@@ -679,11 +687,23 @@ class LumenService : LifecycleService() {
         if (!p.enabled) {
             directBootMirror.mirror(p, active = false, matrix = LumenMatrix.IDENTITY)
             maybeBroadcastFilterStateChanged(p)
-            clearAndStop()
+            clearAndStop(p.fadeDurationMs)
             return
         }
+        if (!startupOutputChecked) {
+            startupOutputChecked = true
+            // Read before applyIfShouldBeActive mirrors the new state over it.
+            // Off last time means nothing is on the display, so the filter can
+            // fade in. On last time means this is a restart and the panel may
+            // still hold the tint; the first apply then lands at once.
+            // A read that times out says nothing, so it counts as on.
+            val lastRun = withTimeoutOrNull(1_000L) { directBootState.flow.first() }
+            if (lastRun?.active == false) engineController.assumeIdentityOnScreen()
+        }
+        val presetChanged = lastPresetKey.getAndSet(p.activePresetKey)
+            .let { it != null && it != p.activePresetKey }
         engineController.ensureEngineFor(p)
-        val active = applyIfShouldBeActive(p)
+        val active = applyIfShouldBeActive(p, presetChanged = presetChanged)
         updateNotification(p, active, force = true)
         maybeBroadcastFilterStateChanged(p)
     }
@@ -717,7 +737,17 @@ class LumenService : LifecycleService() {
         }.onFailure { Log.w(tag, "filter state broadcast failed: ${it.message}") }
     }
 
-    private suspend fun clearAndStop() {
+    /**
+     * [fadeMs] 0 is the direct-boot path too, where the credential-protected
+     * preferences the re-check below reads are not available yet.
+     */
+    private suspend fun clearAndStop(fadeMs: Long = 0L) {
+        if (fadeMs > 0L) {
+            engineController.fadeToIdentity(fadeMs)
+            // Turned back on while it faded: the queued emission takes it
+            // from here, from wherever the fade got to.
+            if (prefs.flow.first().enabled) return
+        }
         engineController.hardClearOutputs("filter disabled")
         stopSelf()
     }
@@ -730,6 +760,9 @@ class LumenService : LifecycleService() {
         } else {
             directBootMirror.markDisabled()
         }
+        // The notification's Off fades like the switch; the emergency off and
+        // automation, which waits for the acknowledgement, stay immediate.
+        if (!blunt) engineController.fadeToIdentity(latestPrefs.get()?.fadeDurationMs ?: 0L)
         engineController.hardClearOutputs("turn off from $source", blunt = blunt)
         // After the clear, not before. The mirror above is written first on
         // purpose, so a process killed mid-clear does not restore the tint on
@@ -752,7 +785,9 @@ class LumenService : LifecycleService() {
      */
     private suspend fun applyIfShouldBeActive(
         p: Preferences,
-        reconcileExactAlarmPermission: Boolean = false
+        reconcileExactAlarmPermission: Boolean = false,
+        presetChanged: Boolean = false,
+        catchingUp: Boolean = false
     ): Boolean {
         val mode = mapMode(p)
         val scheduleActive = isActive(mode)
@@ -767,9 +802,19 @@ class LumenService : LifecycleService() {
         val matrix = phaseMatrix(p, phase)
         // Day to evening and back is a schedule transition like off to on, so
         // it fades; the gate alone would treat it as a slider move and jump.
-        val phaseChanged = filterPhaseTracker.changedTo(phase)
+        // So does a new preset. A schedule change takes the longer of the two
+        // durations; anything else, including the first phase this service
+        // instance sees (switching on, a restore before unlock), takes the
+        // short fade.
+        val previousPhase = filterPhaseTracker.swap(phase)
+        val phaseChanged = previousPhase != phase
+        val fadeMs = if (previousPhase != null && phaseChanged && !catchingUp) {
+            maxOf(p.transitionDurationMs, p.fadeDurationMs)
+        } else {
+            p.fadeDurationMs
+        }
         directBootMirror.mirror(p, active = shouldBeActive, matrix = matrix)
-        engineController.applyIfNeeded(shouldBeActive, matrix, p.transitionDurationMs, ramp = phaseChanged)
+        engineController.applyIfNeeded(shouldBeActive, matrix, fadeMs, ramp = phaseChanged || presetChanged)
         // Always reschedule — the next transition time depends on the current mode and clock.
         if (reconcileExactAlarmPermission) {
             scheduleAlarms.rescheduleIfExactAlarmPermissionChanged(mode)
