@@ -823,25 +823,30 @@ internal class EngineController(
         }.onFailure { Log.w(logTag, "escalated hard reset failed: ${it.message}") }
     }
 
+    /**
+     * The driver for the tint restored before the first unlock: the root one
+     * the unlocked service would pick, when it answers. KernelSU and Magisk
+     * keep their grants in /data/adb, outside credential-encrypted storage, so
+     * `su` usually works on the lock screen, and only a compositor-level driver
+     * reaches it: the Overlay window is drawn below the keyguard. Overlay stays
+     * the fallback for a driver that does not answer.
+     */
     private suspend fun directBootEngineFor(engine: EngineKindDto): ColorEngine {
         val overlay = probe.engineOf(EngineKind.OVERLAY) ?: OverlayEngine()
-        suspend fun colorDisplayIfAvailable(): ColorEngine? {
-            val cdm = probe.engineOf(EngineKind.COLOR_DISPLAY_MANAGER) ?: return null
-            return cdm.takeIf { runCatching { it.isAvailable(context) }.getOrDefault(false) }
+        suspend fun ifAvailable(kind: EngineKind): ColorEngine? {
+            val candidate = probe.engineOf(kind) ?: return null
+            return candidate.takeIf { runCatching { it.isAvailable(context) }.getOrDefault(false) }
         }
         return when (engine) {
-            // Root waits for the unlock. Night Light stays ahead of the overlay
-            // here even for a preset outside its range (C364): this restore is
-            // for the lock screen, which an overlay window never covers, so a
-            // clamped tint beats none.
-            EngineKindDto.Auto ->
-                probe.probeAll(context)
-                    .firstOrNull { it.available && !it.engine.kind.requiresRoot }
-                    ?.engine ?: overlay
-            EngineKindDto.ColorDisplayManager -> colorDisplayIfAvailable() ?: overlay
+            // Root first when it answers. No targets: Night Light stays ahead
+            // of the overlay here even for a preset outside its range (C364):
+            // this restore is for the lock screen, which an overlay window
+            // never covers, so a clamped tint beats none.
+            EngineKindDto.Auto -> probe.pickBest(context) ?: overlay
+            EngineKindDto.ColorDisplayManager -> ifAvailable(EngineKind.COLOR_DISPLAY_MANAGER) ?: overlay
             EngineKindDto.Overlay -> overlay
-            EngineKindDto.SurfaceFlinger,
-            EngineKindDto.Kcal -> overlay
+            EngineKindDto.SurfaceFlinger -> ifAvailable(EngineKind.SURFACE_FLINGER) ?: overlay
+            EngineKindDto.Kcal -> ifAvailable(EngineKind.KCAL) ?: overlay
         }
     }
 
