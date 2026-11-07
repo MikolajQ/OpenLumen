@@ -167,12 +167,27 @@ class EngineControllerBehaviourTest {
         assertThat(applied.amoledClamp).isTrue()
     }
 
-    @Test fun `direct boot restore never selects a root driver`() {
-        // Root drivers need `su`, which cannot be reached before the user has
-        // unlocked the device for the first time, so a mirrored root selection
-        // has to fall back to something rootless.
+    @Test fun `direct boot restore uses an answering root driver`() {
+        // KernelSU and Magisk keep their grants outside credential-encrypted
+        // storage, so `su` answers on the lock screen, and the Overlay window
+        // would be drawn below the keyguard where nobody sees it.
         val overlay = RecordingEngine(EngineKind.OVERLAY)
         val root = RecordingEngine(EngineKind.SURFACE_FLINGER)
+        val controller = controllerFor(overlay, root)
+
+        runBlocking {
+            controller.restoreDirectBootState(
+                DirectBootState(enabled = true, active = true, engine = EngineKindDto.SurfaceFlinger)
+            )
+        }
+
+        assertThat(root.calls).containsExactly("apply")
+        assertThat(overlay.calls).isEmpty()
+    }
+
+    @Test fun `direct boot restore falls back to Overlay when root does not answer`() {
+        val overlay = RecordingEngine(EngineKind.OVERLAY)
+        val root = RecordingEngine(EngineKind.SURFACE_FLINGER, available = false)
         val controller = controllerFor(overlay, root)
 
         runBlocking {
@@ -184,18 +199,34 @@ class EngineControllerBehaviourTest {
         assertThat(root.calls).isEmpty()
         assertThat(overlay.calls).containsExactly("apply")
     }
+
+    @Test fun `direct boot restore on Auto picks what the unlocked service would`() {
+        val overlay = RecordingEngine(EngineKind.OVERLAY)
+        val root = RecordingEngine(EngineKind.SURFACE_FLINGER)
+        val controller = controllerFor(overlay, root)
+
+        runBlocking {
+            controller.restoreDirectBootState(
+                DirectBootState(enabled = true, active = true, engine = EngineKindDto.Auto)
+            )
+        }
+
+        assertThat(root.calls).containsExactly("apply")
+        assertThat(overlay.calls).isEmpty()
+    }
 }
 
 /** Records the order of engine calls so a sequence can be asserted. */
 private class RecordingEngine(
     override val kind: EngineKind,
+    private val available: Boolean = true,
     private val applyResult: () -> EngineResult = { EngineResult.Success }
 ) : ColorEngine {
     override val capabilities: Set<EngineCapability> = emptySet()
     val calls = CopyOnWriteArrayList<String>()
     val applied = CopyOnWriteArrayList<LumenMatrix>()
 
-    override suspend fun isAvailable(context: Context) = true
+    override suspend fun isAvailable(context: Context) = available
 
     override suspend fun apply(context: Context, matrix: LumenMatrix): EngineResult {
         calls += "apply"
