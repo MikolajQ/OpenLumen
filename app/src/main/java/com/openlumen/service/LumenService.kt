@@ -832,7 +832,12 @@ class LumenService : LifecycleService() {
         } else {
             p.fadeDurationMs
         }
-        directBootMirror.mirror(p, active = shouldBeActive, matrix = matrix)
+        directBootMirror.mirror(
+            p,
+            active = shouldBeActive,
+            matrix = matrix,
+            upcoming = directBootSteps(p, mode)
+        )
         engineController.applyIfNeeded(shouldBeActive, matrix, fadeMs, ramp = phaseChanged || presetChanged)
         // Always reschedule — the next transition time depends on the current mode and clock.
         if (reconcileExactAlarmPermission) {
@@ -918,6 +923,8 @@ class LumenService : LifecycleService() {
     private fun ensurePreferencesObserved() {
         if (preferencesObserved || !isUserUnlocked()) return
         CrashLogger.install(this)
+        // From here the ordinary schedule alarm owns the flips.
+        scheduleAlarms.cancelDirectBootRestore()
         // Before anything reads the automation surface: preferences restored
         // from another device carry that device's token, and the contract
         // everywhere else is that the token never leaves the device it was
@@ -963,9 +970,24 @@ class LumenService : LifecycleService() {
         }
     }
 
+    /**
+     * Runs at Locked Boot and again at each mirrored schedule step, from the
+     * alarm set here, until the user unlocks. Each run puts on screen what the
+     * mirror says for this moment and arms the alarm for the step after it.
+     */
     private suspend fun restoreDirectBootState() {
-        if (isUserUnlocked()) return
-        val state = directBootMirror.readSnapshot()
+        if (isUserUnlocked()) {
+            scheduleAlarms.cancelDirectBootRestore()
+            return
+        }
+        val state = directBootMirror.readSnapshot().at(System.currentTimeMillis())
+        val nextStep = state.upcoming.firstOrNull()
+            ?.takeIf { state.enabled }
+        if (nextStep != null) {
+            scheduleAlarms.scheduleDirectBootRestore(nextStep.atEpochMs)
+        } else {
+            scheduleAlarms.cancelDirectBootRestore()
+        }
         if (!state.enabled || !state.active) {
             Log.d(tag, "Direct-boot state inactive; stopping service")
             clearAndStop()
